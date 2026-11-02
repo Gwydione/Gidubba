@@ -1,7 +1,7 @@
 ; Gidubba (formerly TableForge) per-user installer (Inno Setup 6).
 ;
 ; Build it with:   .\publish.ps1 -Installer      (publishes first, then compiles this script)
-; or by hand:      ISCC.exe /DAppVersion=1.4.0 installer\TableForge.iss   (after publish.ps1)
+; or by hand:      ISCC.exe /DAppVersion=1.5.0 installer\TableForge.iss   (after publish.ps1)
 ;
 ; Contract:
 ;   - Installs the self-contained publish\win-x64 folder to %LOCALAPPDATA%\Programs\TableForge, for the current Windows
@@ -33,7 +33,7 @@ VersionInfoCompany=RPG Frequencies
 VersionInfoCopyright=Copyright (c) 2026 RPG Frequencies
 VersionInfoProductName=Gidubba
 SetupIconFile=TableForge\Assets\Gidubba.ico
-VersionInfoVersion=1.4.0
+VersionInfoVersion=1.5.0
 VersionInfoProductTextVersion={#AppVersion}
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=

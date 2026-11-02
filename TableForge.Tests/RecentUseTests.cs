@@ -23,7 +23,7 @@ public class RecentUseTests
             Collection = Db.CreateCollection("Dungeon");
         }
 
-        public MainViewModel Start() => Main = new MainViewModel(Db, Dice, _ => ConfirmAnswer);
+        public MainViewModel Start() => Main = new MainViewModel(Db, Dice, (_, _) => ConfirmAnswer);
 
         public TableSummary Summary(string name) => Main.Tables.Single(t => t.Name == name);
 

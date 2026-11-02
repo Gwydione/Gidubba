@@ -50,7 +50,7 @@ public partial class App : Application
             var dice = new DiceProviderViewModel(new BuiltInDiceProvider(), new DddiceDiceProvider(_dddice), LoadDicePreference, SaveDicePreference,
                 connection, openAccount: () => OpenDddiceAccount(window, connection, rest));
             var main = new MainViewModel(_db, dice,
-                confirm: message => MessageBox.Show(message, "Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes,
+                confirm: (message, title) => MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes,
                 confirmImport: message => MessageBox.Show(message, "Import Collection", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK,
                 showMessage: message => MessageBox.Show(window, message, AppInfo.Title, MessageBoxButton.OK, MessageBoxImage.Warning),
                 dataFolder: DataFolder, openFolder: OpenInExplorer,
@@ -66,7 +66,8 @@ public partial class App : Application
                     Owner = window,
                     DataContext = new StreamingOverlayViewModel(_overlayController!, connection, CopyText, OpenInBrowser),
                 }.ShowDialog(),
-                autoFollow: new AutoFollowSetting(LoadAutoFollow(), SaveAutoFollow));
+                autoFollow: new AutoFollowSetting(LoadAutoFollow(), SaveAutoFollow),
+                openWebPage: OpenInBrowser);
             // The Streaming Overlay listens (on 127.0.0.1 only) just while it is enabled; a port problem is shown in its dialog.
             _overlayController = new StreamingOverlayController(_overlay, DataFolder);
             _overlayController.Start();

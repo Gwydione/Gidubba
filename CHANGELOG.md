@@ -3,6 +3,23 @@
 Each released version of Gidubba (formerly TableForge), newest first. The full notes for each one are in
 `docs/release-notes/`. Versions before 1.2.0 were released as TableForge, and their entries keep that name.
 
+## 1.5.0
+
+- **New: Back to the original table.** After following links (by hand or with Auto-follow), **← Back to …** above
+  **Roll** makes the starting table current again, as a new step at the bottom; earlier results stay. It never rolls.
+- **New: the table list follows the Roll screen.** Following a link (or going back) selects that table in the list,
+  without opening it, so **Edit table** and **Delete table** act on it. When a folder or search hides it, nothing is
+  selected. The selected table is clearly marked even while the list does not have focus.
+- **New: Help & Tips** opens the Gidubba guide in your web browser.
+- **Unique Results:** **Reset Used Results…** and the used count sit right under **Roll**; the **Unique** / **Used**
+  tags are small labels right after each result's text; in Edit table, **Mark All Unique** and **Clear Unique** are
+  above the rows, after **Clear Formatting**.
+- A note under **Roll** when a situational modifier takes a roll outside a table that could clamp. Confirmation
+  questions have titles naming the action.
+- No data-format change (still schema 12): 1.4.0 can still open the data. Collection files, the installer identity,
+  install folder and data folder are unchanged.
+- Notes: `docs/release-notes/1.5.0.md`
+
 ## 1.4.0
 
 - **Data format update: 1.3.0 cannot open the data afterwards.** The first start updates the database from schema 11

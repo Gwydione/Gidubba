@@ -37,6 +37,32 @@
                 </MultiDataTrigger>
             </Style.Triggers>
         </Style>
+        <!-- A row's "Unique" or "Used" tag: a small, quiet pill after its result text, read as a label on the row rather than as more
+             of its text. Used is a neutral gray pill with a hairline edge so it still shows on a used row's gray. -->
+        <Style x:Key="UniqueTagPill" TargetType="Border">
+            <Setter Property="Background" Value="#E8EEF6" />
+            <Setter Property="BorderBrush" Value="#D3DDEA" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="6,0,6,1" />
+            <Setter Property="Margin" Value="6,1,0,0" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsUsed}" Value="True">
+                    <Setter Property="Background" Value="#E2E2E2" />
+                    <Setter Property="BorderBrush" Value="#CCCCCC" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="UniqueTagLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#3A5573" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsUsed}" Value="True">
+                    <Setter Property="Foreground" Value="#555555" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <ScrollViewer x:Name="TrailScroller" VerticalScrollBarVisibility="Auto">
@@ -63,6 +89,10 @@
                             <TextBlock x:Name="AutoFollowedFromText" Text="{Binding AutoFollowedFrom}" Foreground="#666" FontStyle="Italic"
                                        TextWrapping="Wrap" Margin="0,0,0,2"
                                        Visibility="{Binding IsAutoFollowed, Converter={StaticResource BoolToVis}}" />
+                            <!-- Only for a step Back to the original table added. -->
+                            <TextBlock x:Name="ReturnedText" Text="Back to the original table" Foreground="#666" FontStyle="Italic"
+                                       TextWrapping="Wrap" Margin="0,0,0,2"
+                                       Visibility="{Binding IsReturn, Converter={StaticResource BoolToVis}}" />
                             <TextBlock Text="{Binding Title}" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding DiceInfo}" Foreground="#666" Margin="0,2,0,8" />
                             <!-- The table's own description, when it has one: secondary, plain, wrapping. Collapsed (no space at all) when empty. -->
@@ -167,6 +197,12 @@
 
             <!-- Rolling always applies to the current (last) table in the trail. -->
             <StackPanel x:Name="RollControls" Margin="0,6,0,0">
+            <!-- Only after a link was followed (by hand or by auto-follow): back to the table this screen was opened on, as a new
+                 step below. Earlier results stay; nothing is rolled; it never happens by itself. -->
+            <Button x:Name="ReturnToOriginalButton" Content="{Binding ReturnToOriginalLabel}" Command="{Binding ReturnToOriginalCommand}"
+                    HorizontalAlignment="Left" Padding="12,4" Margin="0,0,0,10"
+                    ToolTip="Make the table you started from the current table again. Earlier results stay where they are."
+                    Visibility="{Binding ShowReturnToOriginal, Converter={StaticResource BoolToVis}}" />
             <StackPanel Orientation="Horizontal">
                 <!-- How many independent rolls one Roll makes: chosen by the person (1 by default), never read from a table's text.
                      Manual entry is always one typed result and ignores it. -->
@@ -207,6 +243,14 @@
                 </TextBox>
                 <Button Content="Resolve" Padding="14,6" Margin="8,0,0,0" Command="{Binding ResolveManualCommand}" />
             </StackPanel>
+            <!-- Only for a table with Unique rows: how many are used, and Reset (confirmed; the Unique setting itself is never changed here).
+                 Part of the Roll controls, so it stays in view after every roll. -->
+            <WrapPanel x:Name="UsedResultsBar" Margin="0,8,0,0" Visibility="{Binding HasUniqueRows, Converter={StaticResource BoolToVis}}">
+                <TextBlock x:Name="UsedResultsSummaryText" Text="{Binding UsedResultsSummary}" Foreground="#555" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <Button x:Name="ResetUsedResultsButton" Content="Reset Used Results…" Padding="10,2" VerticalAlignment="Center"
+                        Command="{Binding ResetUsedResultsCommand}"
+                        ToolTip="Make every used Unique result of this table available to roll again. Which rows are Unique does not change." />
+            </WrapPanel>
             <!-- One app-wide setting, remembered between sessions. Off is exactly the behavior Gidubba always had. -->
             <CheckBox x:Name="AutoFollowBox" Content="Auto-follow linked tables" IsChecked="{Binding AutoFollow.IsOn}" Margin="0,8,0,0"
                       HorizontalAlignment="Left"
@@ -255,13 +299,6 @@
             </WrapPanel>
             <TextBlock x:Name="ExportWarningText" Text="{Binding ExportWarning}" Foreground="{StaticResource WarningText}" TextWrapping="Wrap"
                        Margin="0,0,0,6" Visibility="{Binding HasExportWarning, Converter={StaticResource BoolToVis}}" />
-            <!-- Only for a table with Unique rows: how many are used, and Reset (confirmed; the Unique setting itself is never changed here). -->
-            <WrapPanel x:Name="UsedResultsBar" Margin="0,0,0,6" Visibility="{Binding HasUniqueRows, Converter={StaticResource BoolToVis}}">
-                <TextBlock x:Name="UsedResultsSummaryText" Text="{Binding UsedResultsSummary}" Foreground="#555" VerticalAlignment="Center" Margin="0,0,10,0" />
-                <Button x:Name="ResetUsedResultsButton" Content="Reset Used Results…" Padding="10,2" VerticalAlignment="Center"
-                        Command="{Binding ResetUsedResultsCommand}"
-                        ToolTip="Make every used Unique result of this table available to roll again. Which rows are Unique does not change." />
-            </WrapPanel>
 
             <!-- Result sets that are genuine parallel outputs of one roll (same row count, same range at every row):
                  shown as one aligned multi-column grid instead of separate stacked sections, mirroring the Review
@@ -340,11 +377,13 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
-                                                <DockPanel>
-                                                    <TextBlock x:Name="UniqueTagText" DockPanel.Dock="Right" Text="{Binding UniqueTag}" FontSize="11" Foreground="#666" Margin="6,1,0,0"
-                                                               VerticalAlignment="Top" Visibility="{Binding HasUniqueTag, Converter={StaticResource BoolToVis}}" />
+                                                <!-- The tag follows the cell's text, and goes under it when a long result leaves no room. -->
+                                                <WrapPanel>
                                                     <TextBlock views:FormattedText.Segments="{Binding Segments}" TextWrapping="Wrap" Style="{StaticResource AlignedUniqueEntryText}" />
-                                                </DockPanel>
+                                                    <Border x:Name="UniqueTagPill" Style="{StaticResource UniqueTagPill}" Visibility="{Binding HasUniqueTag, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock x:Name="UniqueTagText" Text="{Binding UniqueTag}" Style="{StaticResource UniqueTagLabel}" />
+                                                    </Border>
+                                                </WrapPanel>
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -387,14 +426,17 @@
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="90" />
                                                     <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Text="{Binding RangeLabel}" FontFamily="Consolas" Foreground="#555" />
-                                                <TextBlock Grid.Column="1" views:FormattedText.Segments="{Binding Segments}" TextWrapping="Wrap"
-                                                           Style="{StaticResource UniqueEntryText}" />
-                                                <!-- "Unique" or "Used" (words, so never colour alone); nothing for a repeatable row. -->
-                                                <TextBlock x:Name="UniqueTagText" Grid.Column="2" Text="{Binding UniqueTag}" FontSize="11" Foreground="#666" Margin="8,1,0,0"
-                                                           VerticalAlignment="Top" Visibility="{Binding HasUniqueTag, Converter={StaticResource BoolToVis}}" />
+                                                <!-- The tag follows the text it belongs to, and goes under it when a long result leaves no room. -->
+                                                <WrapPanel Grid.Column="1">
+                                                    <TextBlock views:FormattedText.Segments="{Binding Segments}" TextWrapping="Wrap"
+                                                               Style="{StaticResource UniqueEntryText}" />
+                                                    <!-- "Unique" or "Used" (words, so never colour alone); nothing for a repeatable row. -->
+                                                    <Border x:Name="UniqueTagPill" Style="{StaticResource UniqueTagPill}" Visibility="{Binding HasUniqueTag, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock x:Name="UniqueTagText" Text="{Binding UniqueTag}" Style="{StaticResource UniqueTagLabel}" />
+                                                    </Border>
+                                                </WrapPanel>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>

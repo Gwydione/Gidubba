@@ -18,7 +18,7 @@ public class DeleteCollectionTests
 
         public World() => Db = Temp.Open();
 
-        public MainViewModel Start() => Main = new MainViewModel(Db, new FixedDice(1), m => { Confirmations.Add(m); return Answer; });
+        public MainViewModel Start() => Main = new MainViewModel(Db, new FixedDice(1), (m, _) => { Confirmations.Add(m); return Answer; });
 
         public void Select(string name) => Main.SelectedCollection = Main.Collections.Single(c => c.Name == name);
 

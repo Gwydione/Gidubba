@@ -7,8 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
 
-    <!-- Gidubba 1.4.0: Unique Results, the simpler sidebar with collapsible Recent rolls, and aligned columns that fit the window. Version drives the file version, the product version and the number shown in the app. -->
-    <Version>1.4.0</Version>
+    <!-- Gidubba 1.5.0: Back to the original table, a sidebar that follows the Roll screen, Help & Tips, and easier-to-find Unique controls. Version drives the file version, the product version and the number shown in the app. -->
+    <Version>1.5.0</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <!-- The public name. Product and AssemblyTitle are what Windows shows (file properties, Task Manager); the exe stays
          TableForge.exe, so existing installs, shortcuts and pins keep working. -->

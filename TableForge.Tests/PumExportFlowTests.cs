@@ -72,7 +72,7 @@ public class PumExportFlowTests
             });
         }
 
-        public MainViewModel Start(bool withReview = true) => Main = new MainViewModel(Db, new FixedDice(3), _ => true,
+        public MainViewModel Start(bool withReview = true) => Main = new MainViewModel(Db, new FixedDice(3), (_, _) => true,
             copyText: Copied.Add, showMessage: Messages.Add, now: () => Stamp,
             reviewPumExport: withReview ? review => { Reviews.Add(review); DuringReview?.Invoke(review); return SaveReview; } : null,
             choosePumFile: request => { SaveRequests.Add(request); return SavePath; });

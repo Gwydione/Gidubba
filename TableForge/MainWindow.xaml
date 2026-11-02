@@ -42,19 +42,33 @@
 
         <!-- A table's name (trimmed if long) with its dice on the right, and its folder below when the view calls for it
              (searching, or All Tables): redundant and hidden while a specific folder or Unfiled is already the whole view. -->
+        <!-- The selected table (the one being rolled, edited or deleted) is marked by a gold bar, a tinted background and a
+             semibold name, the same whether or not the list has keyboard focus (Windows' own inactive selection is very faint). -->
         <DataTemplate x:Key="TableRow">
-            <StackPanel>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
-                    <TextBlock Grid.Column="1" Text="{Binding Dice}" Foreground="#777" Margin="8,0,0,0" />
-                </Grid>
-                <TextBlock Text="{Binding FolderName}" FontSize="11" Foreground="#999" TextTrimming="CharacterEllipsis"
-                           Visibility="{Binding DataContext.ShowFolderInList, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
-            </StackPanel>
+            <Border x:Name="TableRowMarker" BorderThickness="3,0,0,0" BorderBrush="Transparent" Background="Transparent" Padding="5,1,4,1">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="TableRowName" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                        <TextBlock x:Name="TableRowDice" Grid.Column="1" Text="{Binding Dice}" Foreground="#777" Margin="8,0,0,0" />
+                    </Grid>
+                    <TextBlock x:Name="TableRowFolder" Text="{Binding FolderName}" FontSize="11" Foreground="#999" TextTrimming="CharacterEllipsis"
+                               Visibility="{Binding DataContext.ShowFolderInList, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+            </Border>
+            <DataTemplate.Triggers>
+                <!-- The gray dice and folder text are darkened so they keep their contrast on the tinted background. -->
+                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter TargetName="TableRowMarker" Property="BorderBrush" Value="#A07C14" />
+                    <Setter TargetName="TableRowMarker" Property="Background" Value="#E3EAF5" />
+                    <Setter TargetName="TableRowName" Property="FontWeight" Value="SemiBold" />
+                    <Setter TargetName="TableRowDice" Property="Foreground" Value="#555" />
+                    <Setter TargetName="TableRowFolder" Property="Foreground" Value="#666" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:PasteViewModel}"><views:PasteView /></DataTemplate>
@@ -71,6 +85,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="{Binding Status}" Foreground="#444" MinHeight="18" TextTrimming="CharacterEllipsis" ToolTip="{Binding Status}" />
                 <!-- The OBS result overlay: its settings, Show Test Result and Clear Overlay. -->
@@ -81,10 +96,14 @@
                 <Button x:Name="OpenDataFolderButton" Grid.Column="2" Content="Open Data Folder" Padding="8,0" Margin="6,0,0,0"
                         Command="{Binding OpenDataFolderCommand}" ToolTip="{Binding DataFolder}"
                         Visibility="{Binding HasDataFolder, Converter={StaticResource BoolToVis}}" />
-                <Button x:Name="AboutButton" Grid.Column="3" Content="About" Padding="8,0" Margin="6,0,0,0"
+                <!-- The Gidubba guide, in the person's own browser. -->
+                <Button x:Name="HelpButton" Grid.Column="3" Content="Help &amp; Tips" Padding="8,0" Margin="6,0,0,0"
+                        Command="{Binding HelpCommand}" ToolTip="Open the Gidubba guide in your web browser"
+                        Visibility="{Binding HasHelp, Converter={StaticResource BoolToVis}}" />
+                <Button x:Name="AboutButton" Grid.Column="4" Content="About" Padding="8,0" Margin="6,0,0,0"
                         Command="{Binding AboutCommand}" ToolTip="About Gidubba"
                         Visibility="{Binding HasAbout, Converter={StaticResource BoolToVis}}" />
-                <TextBlock Grid.Column="4" x:Name="VersionText" Text="{x:Static app:AppInfo.VersionAndBuild}" Foreground="#888" Margin="12,0,0,0" />
+                <TextBlock Grid.Column="5" x:Name="VersionText" Text="{x:Static app:AppInfo.VersionAndBuild}" Foreground="#888" Margin="12,0,0,0" />
             </Grid>
         </Border>
 
@@ -231,6 +250,8 @@
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <!-- The row's own padding is inside TableRow, so its selected background reaches the item's edges. -->
+                                <Setter Property="Padding" Value="0" />
                                 <EventSetter Event="PreviewMouseLeftButtonUp" Handler="TableItem_MouseUp" />
                             </Style>
                         </ListBox.ItemContainerStyle>

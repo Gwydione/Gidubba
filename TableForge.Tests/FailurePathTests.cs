@@ -21,7 +21,7 @@ public class FailurePathTests
     {
         db = temp.Open();
         collection = db.CreateCollection("Dungeon");
-        return new MainViewModel(db, new FixedDice(roll), _ => true);
+        return new MainViewModel(db, new FixedDice(roll), (_, _) => true);
     }
 
     // ---- save ---------------------------------------------------------------------------------
@@ -82,7 +82,7 @@ public class FailurePathTests
         using var temp = new TempDatabase();
         var main = NewMain(temp, out var db, out var collection);
         var (items, scavenging) = Fixtures.SeedScavenging(db, collection.Id);
-        main = new MainViewModel(db, new FixedDice(6), _ => true);
+        main = new MainViewModel(db, new FixedDice(6), (_, _) => true);
         main.SelectedTable = main.Tables.Single(t => t.Name == "Scavenged Items");
         var openBefore = main.Current;
         Exec(temp.Path, "CREATE TRIGGER NoDelete BEFORE DELETE ON Tables BEGIN SELECT RAISE(ABORT, 'delete blocked'); END;");
@@ -102,7 +102,7 @@ public class FailurePathTests
         using var temp = new TempDatabase();
         var main = NewMain(temp, out var db, out var collection);
         db.SaveTable(Fixtures.ScavengedItems(collection.Id));
-        main = new MainViewModel(db, new FixedDice(6), _ => true);
+        main = new MainViewModel(db, new FixedDice(6), (_, _) => true);
         var summary = main.Tables[0];
         db.Dispose();                                          // the database goes away underneath the running app
 
@@ -124,7 +124,7 @@ public class FailurePathTests
         using var temp = new TempDatabase();
         var main = NewMain(temp, out var db, out var collection);
         Fixtures.SeedScavenging(db, collection.Id);
-        main = new MainViewModel(db, new FixedDice(9), _ => true);
+        main = new MainViewModel(db, new FixedDice(9), (_, _) => true);
         main.SelectedTable = main.Tables.Single(t => t.Name == "Scavenging");
         var roll = (RollViewModel)main.Current!;
         Exec(temp.Path, "CREATE TRIGGER NoHistory BEFORE INSERT ON RollHistory BEGIN SELECT RAISE(ABORT, 'no history'); END;");
@@ -161,7 +161,7 @@ public class FailurePathTests
         using var temp = new TempDatabase();
         var main = NewMain(temp, out var db, out var collection);
         db.SaveTable(Fixtures.ScavengedItems(collection.Id));
-        main = new MainViewModel(db, new FixedDice(6), _ => true);
+        main = new MainViewModel(db, new FixedDice(6), (_, _) => true);
         main.SelectedTable = main.Tables[0];
         var roll = (RollViewModel)main.Current!;
 

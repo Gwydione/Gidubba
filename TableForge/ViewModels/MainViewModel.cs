@@ -66,12 +66,13 @@ public sealed class MainViewModel : ObservableObject
 {
     private readonly AppDatabase _db;
     private readonly IDiceProvider _dice;
-    private readonly Func<string, bool> _confirm;
+    private readonly Func<string, string, bool> _confirm;
     private readonly Action<string>? _copyText;
     private readonly Func<SaveFileRequest, string?>? _chooseSaveFile;
     private readonly OverlayPublisher? _overlay;
     private readonly Action<string>? _openFolder;
     private readonly Action? _showAbout;
+    private readonly Action<string>? _openWebPage;
     private readonly Action? _showStreamingOverlay;
     private readonly Func<SaveFileRequest, string?> _chooseCollectionFile;
     private readonly Func<string?> _chooseImportFile;
@@ -93,7 +94,8 @@ public sealed class MainViewModel : ObservableObject
     private object? _current;
     private bool _suppressOpen;
 
-    /// <param name="confirm">Asks the user to confirm a destructive action; declines by default.</param>
+    /// <param name="confirm">Asks the user to confirm a destructive action, given the question and a title naming the action
+    /// ("Delete Table"); declines by default.</param>
     /// <param name="copyText">Puts text on the clipboard (Copy Table Text). Null means the Windows clipboard.</param>
     /// <param name="dataFolder">The folder holding the database and settings, for Open Data Folder. Null hides the command.</param>
     /// <param name="openFolder">Shows a folder in File Explorer.</param>
@@ -101,7 +103,8 @@ public sealed class MainViewModel : ObservableObject
     /// <param name="chooseSaveFile">Asks where to save an exported file (Save Foundry JSON…, Save Tables+ JSON…). Null means the Windows Save dialog.</param>
     /// <param name="chooseCollectionFile">Asks where to save an exported Collection (.tfcollection). Null means the Windows Save dialog.</param>
     /// <param name="chooseImportFile">Asks which .tfcollection file to import. Null means the Windows Open dialog.</param>
-    /// <param name="confirmImport">Asks the user to confirm an import, before anything is changed. Null means <paramref name="confirm"/>.</param>
+    /// <param name="confirmImport">Asks the user to confirm an import, before anything is changed. Null means <paramref name="confirm"/>
+    /// (titled "Import Collection").</param>
     /// <param name="showMessage">Shows a refused export or import with its details. The status bar always has the summary.</param>
     /// <param name="overlay">The Streaming Overlay, shared by every Roll screen this opens: only resolved results reach it.</param>
     /// <param name="showStreamingOverlay">Shows the Streaming Overlay dialog. Null hides the command.</param>
@@ -110,32 +113,35 @@ public sealed class MainViewModel : ObservableObject
     /// <param name="choosePumFile">Asks where to save a PUM Companion bundle (.pumb). Null means the Windows Save dialog.</param>
     /// <param name="now">The time stored in a PUM bundle's files. Null means the local time now.</param>
     /// <param name="autoFollow">Auto-follow linked tables, shared by every Roll screen this opens. Null means off, not remembered.</param>
-    public MainViewModel(AppDatabase db, IDiceProvider dice, Func<string, bool>? confirm = null, Action<string>? copyText = null,
+    /// <param name="openWebPage">Opens a web page in the person's own browser (Help &amp; Tips). Null hides the command.</param>
+    public MainViewModel(AppDatabase db, IDiceProvider dice, Func<string, string, bool>? confirm = null, Action<string>? copyText = null,
         string? dataFolder = null, Action<string>? openFolder = null, Action? showAbout = null, Func<SaveFileRequest, string?>? chooseSaveFile = null,
         Func<SaveFileRequest, string?>? chooseCollectionFile = null, Func<string?>? chooseImportFile = null, Func<string, bool>? confirmImport = null,
         Action<string>? showMessage = null, OverlayPublisher? overlay = null, Action? showStreamingOverlay = null,
         Func<PumExportReviewViewModel, bool>? reviewPumExport = null, Func<SaveFileRequest, string?>? choosePumFile = null, Func<DateTime>? now = null,
-        AutoFollowSetting? autoFollow = null)
+        AutoFollowSetting? autoFollow = null, Action<string>? openWebPage = null)
     {
         AutoFollow = autoFollow ?? new AutoFollowSetting();
         _db = db;
         _dice = dice;
-        _confirm = confirm ?? (_ => false);
+        _confirm = confirm ?? ((_, _) => false);
         _copyText = copyText;
         _chooseSaveFile = chooseSaveFile;
         _overlay = overlay;
         DataFolder = dataFolder;
         _openFolder = openFolder;
         _showAbout = showAbout;
+        _openWebPage = openWebPage;
         _showStreamingOverlay = showStreamingOverlay;
         _chooseCollectionFile = chooseCollectionFile ?? CollectionFileChooser.ChooseSave;
         _chooseImportFile = chooseImportFile ?? CollectionFileChooser.ChooseOpen;
-        _confirmImport = confirmImport ?? _confirm;
+        _confirmImport = confirmImport ?? (message => _confirm(message, "Import Collection"));
         _showMessage = showMessage;
         _reviewPumExport = reviewPumExport;
         _choosePumFile = choosePumFile ?? SaveFileChooser.ChoosePumBundle;
         _now = now ?? (() => DateTime.Now);
         AboutCommand = new RelayCommand(() => _showAbout?.Invoke(), () => _showAbout is not null);
+        HelpCommand = new RelayCommand(() => _openWebPage?.Invoke(HelpUrl), () => _openWebPage is not null);
         StreamingOverlayCommand = new RelayCommand(() => _showStreamingOverlay?.Invoke(), () => _showStreamingOverlay is not null);
         OpenDataFolderCommand = new RelayCommand(() => Try("open the data folder", () => _openFolder!(DataFolder!)),
             () => DataFolder is not null && _openFolder is not null);
@@ -356,6 +362,13 @@ public sealed class MainViewModel : ObservableObject
     public ICommand AboutCommand { get; }
     public bool HasAbout => _showAbout is not null;
 
+    /// <summary>The Gidubba guide: how to paste, link, roll and use Unique results, with tips.</summary>
+    public const string HelpUrl = "https://rpgfrequencies.com/gidubba-guide.html";
+
+    /// <summary>Help &amp; Tips: opens <see cref="HelpUrl"/> in the person's own browser, never inside Gidubba.</summary>
+    public ICommand HelpCommand { get; }
+    public bool HasHelp => _openWebPage is not null;
+
     /// <summary>Streaming Overlay…: the overlay's settings, Show Test Result and Clear Overlay.</summary>
     public ICommand StreamingOverlayCommand { get; }
     public bool HasStreamingOverlay => _showStreamingOverlay is not null;
@@ -566,7 +579,7 @@ public sealed class MainViewModel : ObservableObject
         if (links > 0)
             message += $"\n\n{links} {(links == 1 ? "entry" : "entries")} in other collections link to its tables. They will keep the table names as unresolved links.";
         message += "\n\nThis cannot be undone.";
-        if (!_confirm(message)) return;
+        if (!_confirm(message, "Delete Collection")) return;
 
         var index = Collections.IndexOf(collection);
         _db.DeleteCollection(collection.Id);
@@ -623,7 +636,7 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     private void ApplyFilter()
     {
-        var keepId = SelectedTable?.Id;
+        var keepId = ShownTableId; // a table shown on the Roll screen is selected again as soon as the list shows it
         var filter = TableFilter.Trim();
         var scoped = filter.Length > 0 || SelectedFolderNav is null || SelectedFolderNav.IsAllTables
             ? _allTables
@@ -692,7 +705,7 @@ public sealed class MainViewModel : ObservableObject
         var count = _allTables.Count(t => t.FolderId == target.FolderId);
         var message = $"Delete \"{target.Name}\"?" +
             (count == 0 ? "\n\nIt has no tables." : $"\n\nIts {count} {(count == 1 ? "table" : "tables")} will move to Unfiled.");
-        if (!_confirm(message)) return;
+        if (!_confirm(message, "Delete Folder")) return;
 
         _db.DeleteFolder(target.FolderId!.Value);
         ReloadFoldersAndTables(); // the deleted folder is gone from FolderNav, so this settles on All Tables
@@ -804,7 +817,7 @@ public sealed class MainViewModel : ObservableObject
         if (links > 0)
             message += $"\n\n{links} {(links == 1 ? "entry" : "entries")} in other tables link to it. They will keep the name \"{table.Name}\" as an unresolved link.";
         message += "\n\nIts recent rolls stay in Recent Rolls as readable records.";
-        if (!_confirm(message)) return;
+        if (!_confirm(message, "Delete Table")) return;
 
         _db.DeleteTable(table.Id);
         Current = null;
@@ -824,11 +837,28 @@ public sealed class MainViewModel : ObservableObject
     private RollViewModel NewRollSession(RollableTable table)
     {
         MarkUsed(table.Id);
-        return new RollViewModel(table, _dice, _db.LoadTable, MarkUsed, RecordRoll,
+        RollViewModel? session = null;
+        session = new RollViewModel(table, _dice, _db.LoadTable, id => ShowCurrentTable(session!, id), RecordRoll,
             diceReady: DiceProviders is { } providers ? () => providers.CanRoll : null, copyText: _copyText, chooseSaveFile: _chooseSaveFile, overlay: _overlay,
             exportPum: _reviewPumExport is null ? null : ExportTableToPum, autoFollow: AutoFollow,
             usedResults: new UsedResultsStore(_db.GetUsedRowKeys, _db.MarkRowsUsed, _db.ResetUsedResults), confirm: _confirm);
+        return session;
     }
+
+    /// <summary>
+    /// A Roll screen moved on to another table (a followed link, by hand or by auto-follow, or Back to the original table): it
+    /// becomes recent, and the list selects it — only selects it, never opens it — so Edit, Delete and Enter act on the table
+    /// actually shown. When the list doesn't show that table (another folder, or a search), nothing is selected at all, so they
+    /// can never act on a different table instead. A screen no longer shown changes nothing in the list.
+    /// </summary>
+    private void ShowCurrentTable(RollViewModel session, long tableId)
+    {
+        MarkUsed(tableId);
+        if (ReferenceEquals(Current, session)) SelectWithoutOpening(Tables.FirstOrDefault(t => t.Id == tableId));
+    }
+
+    /// <summary>The table the right-hand side is about: the Roll screen's current table, or else the one selected in the list.</summary>
+    private long? ShownTableId => Current is RollViewModel roll ? roll.Current.Table.Id : SelectedTable?.Id;
 
     private void MarkUsed(long tableId)
     {

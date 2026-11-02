@@ -166,7 +166,7 @@
 
                 <!-- Bold/italic for the words selected in a row's result text. The buttons never take focus, so the selection
                      they act on stays exactly where it is; Ctrl+B, Ctrl+I and Ctrl+Space do the same from the keyboard. -->
-                <StackPanel x:Name="FormattingBar" DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                <WrapPanel x:Name="FormattingBar" DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
                     <TextBlock Text="Selected result text:" Foreground="#555" VerticalAlignment="Center" Margin="0,0,6,0" />
                     <Button x:Name="BoldButton" Content="B" FontWeight="Bold" Width="28" Padding="0,3" Focusable="False" IsTabStop="False"
                             Click="OnBoldClick" AutomationProperties.Name="Bold" ToolTip="Bold (Ctrl+B) — the selected result text; again to remove it" />
@@ -174,8 +174,21 @@
                             Click="OnItalicClick" AutomationProperties.Name="Italic" ToolTip="Italic (Ctrl+I) — the selected result text; again to remove it" />
                     <Button x:Name="ClearFormattingButton" Content="Clear Formatting" Padding="8,3" Margin="4,0,0,0" Focusable="False" IsTabStop="False"
                             Click="OnClearFormattingClick" ToolTip="Clear Formatting (Ctrl+Space) — remove bold and italic from the selected result text" />
+                    <!-- Mark All Unique / Clear Unique, above the rows so a long table needs no scrolling to reach them: the selected
+                         result set's rows, or in the aligned view every set's (each cell is its own row). -->
+                    <StackPanel x:Name="UniqueBulkBar" Orientation="Horizontal" Margin="16,0,0,0">
+                        <TextBlock Text="Unique rows:" Foreground="#555" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <Button x:Name="MarkAllUniqueButton" Content="Mark All Unique" Padding="10,3" Command="{Binding MarkAllUniqueCommand}"
+                                ToolTip="Make every row in this result set Unique" Visibility="{Binding IsNotAligned, Converter={StaticResource BoolToVis}}" />
+                        <Button x:Name="ClearUniqueButton" Content="Clear Unique" Padding="10,3" Margin="6,0,0,0" Command="{Binding ClearUniqueCommand}"
+                                ToolTip="Make every row in this result set repeatable again" Visibility="{Binding IsNotAligned, Converter={StaticResource BoolToVis}}" />
+                        <Button x:Name="AlignedMarkAllUniqueButton" Content="Mark All Unique" Padding="10,3" Command="{Binding MarkAllUniqueCommand}"
+                                ToolTip="Make every row in every result set Unique" Visibility="{Binding IsAligned, Converter={StaticResource BoolToVis}}" />
+                        <Button x:Name="AlignedClearUniqueButton" Content="Clear Unique" Padding="10,3" Margin="6,0,0,0" Command="{Binding ClearUniqueCommand}"
+                                ToolTip="Make every row in every result set repeatable again" Visibility="{Binding IsAligned, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
                     <TextBlock x:Name="FormatMessageText" Text="{Binding FormatMessage}" Foreground="#555" VerticalAlignment="Center" Margin="12,0,0,0" TextWrapping="Wrap" />
-                </StackPanel>
+                </WrapPanel>
 
                 <!-- PDF copy/paste cleanup: deterministic, visible, conservative fixes for how text copies imperfectly. -->
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
@@ -302,10 +315,6 @@
                         </ItemsControl>
                         <StackPanel Orientation="Horizontal" Margin="30,4,0,0">
                             <Button Content="Add row" Padding="10,3" Command="{Binding SelectedResultSet.AddRowCommand}" />
-                            <Button x:Name="MarkAllUniqueButton" Content="Mark All Unique" Padding="10,3" Margin="12,0,0,0" Command="{Binding MarkAllUniqueCommand}"
-                                    ToolTip="Make every row in this result set Unique" />
-                            <Button x:Name="ClearUniqueButton" Content="Clear Unique" Padding="10,3" Margin="6,0,0,0" Command="{Binding ClearUniqueCommand}"
-                                    ToolTip="Make every row in this result set repeatable again" />
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
@@ -405,10 +414,6 @@
                         <StackPanel Orientation="Horizontal" Margin="30,4,0,0">
                             <Button Content="Add row" Padding="10,3"
                                     ToolTip="Adds one row to every result set, keeping them aligned" Command="{Binding AddAlignedRowCommand}" />
-                            <Button x:Name="AlignedMarkAllUniqueButton" Content="Mark All Unique" Padding="10,3" Margin="12,0,0,0" Command="{Binding MarkAllUniqueCommand}"
-                                    ToolTip="Make every row in every result set Unique" />
-                            <Button x:Name="AlignedClearUniqueButton" Content="Clear Unique" Padding="10,3" Margin="6,0,0,0" Command="{Binding ClearUniqueCommand}"
-                                    ToolTip="Make every row in every result set repeatable again" />
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>

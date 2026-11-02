@@ -482,13 +482,13 @@ public class UniqueLinkedAndManualTests
         }
 
         var dice = new FixedDice(5);
-        var first = OpenIn(new MainViewModel(db, dice, _ => true), "Monsters");
+        var first = OpenIn(new MainViewModel(db, dice, (_, _) => true), "Monsters");
         Enter(first, "2");                                                           // Goblin, by hand
         Assert.Equal("Goblin", first.Results.Single().Text);
 
         db.Dispose();                                                                // a restart
         var reopened = temp.Open();
-        var main = new MainViewModel(reopened, dice, _ => true, autoFollow: new AutoFollowSetting(true));
+        var main = new MainViewModel(reopened, dice, (_, _) => true, autoFollow: new AutoFollowSetting(true));
         var monstersAgain = OpenIn(main, "Monsters");
         Enter(monstersAgain, "1");
         Assert.Equal(UniqueResults.AlreadyUsedMessage, monstersAgain.Message);

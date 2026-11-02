@@ -253,7 +253,7 @@ public class PortableCollectionDescriptionTests
         doc["tables"]![1]!["description"] = new string('x', TableDescription.MaxLength + 1);
         File.WriteAllBytes(file.Path, Bytes(doc));
         var shown = new List<string>();
-        var main = new MainViewModel(db, new FixedDice(1), _ => true, chooseImportFile: () => file.Path, confirmImport: _ => true, showMessage: shown.Add);
+        var main = new MainViewModel(db, new FixedDice(1), (_, _) => true, chooseImportFile: () => file.Path, confirmImport: _ => true, showMessage: shown.Add);
         var before = Snapshot(temp.Path);
 
         main.ImportCollectionCommand.Execute(null);

@@ -316,7 +316,7 @@ public class LayoutViewTests
             ui.Layout();
 
             var clientWidth = ui.Window.ActualWidth;
-            foreach (var name in new[] { "Add result set", "Delete result set", "Paste rows into this set…", "Add row", "Save Table", "Cancel", "Add to end", "Close" })
+            foreach (var name in new[] { "Add result set", "Delete result set", "Paste rows into this set…", "Mark All Unique", "Clear Unique", "Add row", "Save Table", "Cancel", "Add to end", "Close" })
             {
                 var button = ui.One<Button>(b => b.IsVisible && b.Content as string == name);
                 var b = BoundsIn(button, ui.Window);

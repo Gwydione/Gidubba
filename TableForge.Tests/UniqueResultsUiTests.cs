@@ -23,6 +23,7 @@ public class UniqueResultsUiTests
         public AppDatabase Database { get; private set; }
         public Collection Collection { get; }
         public List<string> Confirmations { get; } = [];
+        public List<string> ConfirmationTitles { get; } = [];
         public bool Answer { get; set; } = true;
         public MainViewModel Main { get; private set; }
 
@@ -34,7 +35,7 @@ public class UniqueResultsUiTests
             Main = NewMain();
         }
 
-        private MainViewModel NewMain() => new(Database, new FixedDice(1), m => { Confirmations.Add(m); return Answer; });
+        private MainViewModel NewMain() => new(Database, new FixedDice(1), (m, title) => { Confirmations.Add(m); ConfirmationTitles.Add(title); return Answer; });
 
         public void Restart()
         {
@@ -193,6 +194,7 @@ public class UniqueResultsUiTests
         roll.ResetUsedResultsCommand.Execute(null);
         Assert.Equal("Reset the used results for \"Monsters\"?\n\n1 used Unique result will be available to roll again. Which rows are Unique does not change.",
             db.Confirmations.Single());
+        Assert.Equal("Reset Used Results", db.ConfirmationTitles.Single());              // titled for what it does, not "Delete"
         Assert.Equal(["Used", "Unique", ""], Tags(roll));                             // declined: nothing changed
 
         db.Answer = true;
@@ -214,7 +216,7 @@ public class UniqueResultsUiTests
         var table = UniqueMonsters(1).Also(t => { t.Id = 1; foreach (var e in t.ResultSets[0].Entries) e.RowKey = Guid.NewGuid(); });
         var inner = UsedResultsStore.InMemory();
         var store = new UsedResultsStore(inner.Get, inner.MarkUsed, _ => throw new InvalidOperationException("disk full"));
-        var roll = new RollViewModel(table, new FixedDice(1), usedResults: store, confirm: _ => true);
+        var roll = new RollViewModel(table, new FixedDice(1), usedResults: store, confirm: (_, _) => true);
         roll.RollCommand.Execute(null);
 
         roll.ResetUsedResultsCommand.Execute(null);
@@ -272,7 +274,7 @@ public class UniqueResultsUiTests
     {
         var table = UniqueMonsters(1).Also(t => { t.Id = 1; foreach (var e in t.ResultSets[0].Entries) e.RowKey = Guid.NewGuid(); });
         var dice = new ScriptedDice(1, 3) { PendOnCall = 2 };
-        var roll = new RollViewModel(table, dice, confirm: _ => true);
+        var roll = new RollViewModel(table, dice, confirm: (_, _) => true);
         roll.RollCommand.Execute(null);
         roll.RollCommand.Execute(null);                                              // the second throw stays in the air
         Assert.True(roll.IsRolling);

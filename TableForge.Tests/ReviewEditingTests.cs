@@ -26,7 +26,7 @@ public class ReviewEditingTests
         /// <summary>Creates the main view model after seeding, as at application start.</summary>
         public MainViewModel Start()
         {
-            Main = new MainViewModel(Db, Dice, message => { ConfirmPrompts.Add(message); return ConfirmAnswer; });
+            Main = new MainViewModel(Db, Dice, (message, _) => { ConfirmPrompts.Add(message); return ConfirmAnswer; });
             return Main;
         }
 

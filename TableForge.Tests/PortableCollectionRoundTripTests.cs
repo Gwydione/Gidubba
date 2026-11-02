@@ -269,7 +269,7 @@ public class PortableCollectionRoundTripTests
     {
         using var rt = new RoundTrip().Run();
         rt.ReopenB();
-        var main = new MainViewModel(rt.B, new FixedDice(8), _ => true);
+        var main = new MainViewModel(rt.B, new FixedDice(8), (_, _) => true);
         main.SelectedCollection = main.Collections.Single(c => c.Id == rt.Imported.Id);
 
         main.TableFilter = "rum";

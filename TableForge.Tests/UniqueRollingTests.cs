@@ -545,7 +545,7 @@ public class UniqueRollingTests
         var hermit = db.LoadTable(saved.Id)!.ResultSets[0].Entries[0].RowKey;
 
         var dice = new FixedDice(2);
-        var main = new MainViewModel(db, dice, _ => true);
+        var main = new MainViewModel(db, dice, (_, _) => true);
         main.SelectedTable = main.Tables.Single(t => t.Name == "Encounters");
         var session = Assert.IsType<RollViewModel>(main.Current);
         session.RollCommand.Execute(null);
@@ -559,7 +559,7 @@ public class UniqueRollingTests
         db.Dispose();                                                              // a restart
         var reopened = temp.Open();
         Assert.Equal([hermit], reopened.GetUsedRowKeys(saved.Id).ToArray());
-        var restarted = new MainViewModel(reopened, dice, _ => true);
+        var restarted = new MainViewModel(reopened, dice, (_, _) => true);
         restarted.SelectedTable = restarted.Tables.Single(t => t.Name == "Encounters");
         var again = Assert.IsType<RollViewModel>(restarted.Current);
         again.RollCommand.Execute(null);

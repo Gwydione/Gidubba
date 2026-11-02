@@ -423,7 +423,7 @@ public class PortableCollectionValidationTests
         File.WriteAllText(file.Path, content, new UTF8Encoding(false));
         var asked = new List<string>();
         var shown = new List<string>();
-        var main = new MainViewModel(db, new FixedDice(1), _ => true, chooseImportFile: () => file.Path,
+        var main = new MainViewModel(db, new FixedDice(1), (_, _) => true, chooseImportFile: () => file.Path,
             confirmImport: m => { asked.Add(m); return true; }, showMessage: shown.Add);
         var before = Snapshot(temp.Path);
 
@@ -444,7 +444,7 @@ public class PortableCollectionValidationTests
         SeedOther(db);
         using var file = new TempFile();
         using (var stream = File.Create(file.Path)) stream.SetLength(PortableFormat.MaxFileBytes + 1);
-        var main = new MainViewModel(db, new FixedDice(1), _ => true, chooseImportFile: () => file.Path, confirmImport: _ => true);
+        var main = new MainViewModel(db, new FixedDice(1), (_, _) => true, chooseImportFile: () => file.Path, confirmImport: _ => true);
         var before = Snapshot(temp.Path);
 
         main.ImportCollectionCommand.Execute(null);

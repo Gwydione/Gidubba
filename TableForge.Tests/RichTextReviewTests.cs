@@ -25,7 +25,7 @@ public class RichTextReviewTests
             Collection = Db.CreateCollection("Dungeon");
         }
 
-        public MainViewModel Start() => Main = new MainViewModel(Db, new FixedDice(1), _ => true, copyText: Copied.Add);
+        public MainViewModel Start() => Main = new MainViewModel(Db, new FixedDice(1), (_, _) => true, copyText: Copied.Add);
 
         public ReviewViewModel Edit(string name)
         {

@@ -197,6 +197,31 @@ Use a `d6` table with rows `1`–`6`, and a two-result-set table (for example `D
 - [ ] A table with three or more result sets: on the Roll screen and in Edit table the columns share the window's width,
       scroll sideways when the window is narrow, and the headings stay over their columns while scrolling.
 
+## Back, the table list and Help (1.5.0)
+
+Use a table whose results link to a second table, which links to a third.
+
+- [ ] Roll the first table and follow a link: **← Back to <first table>** appears just above **Roll**, and the table list
+      selects the second table (gold bar, tinted background, bold name) while the Roll screen has focus. Nothing reopens,
+      nothing is rolled, and the earlier result is still shown.
+- [ ] Follow on to the third table, then **Back**: a new step "Back to the original table" for the first table appears at
+      the bottom, "Not rolled yet"; every earlier result is still above it, and the list selects the first table.
+- [ ] With **Auto-follow linked tables** on, Roll the first table: the chain runs as before, and **Back** and the list's
+      selection follow the last table reached.
+- [ ] On a followed table, **Edit table** opens that table, and **Cancel** comes back to it. **Delete table** names that table.
+- [ ] Search for (or open a folder without) the followed table: nothing is selected, and **Edit table** / **Delete table**
+      are unavailable until it is shown again.
+- [ ] **Help & Tips** (bottom of the window) opens https://rpgfrequencies.com/gidubba-guide.html in the default browser.
+      **F1** does nothing.
+- [ ] A table with Unique rows: **Reset Used Results…** and the count are right under **Roll**; the **Unique** / **Used**
+      tags are small rounded labels right after each result's text (under a long result), also in side-by-side columns.
+- [ ] Edit table: **Mark All Unique** and **Clear Unique** follow **Clear Formatting** above the rows (on the next line at
+      1000×640, nothing cut off), in both the one-set and side-by-side views.
+- [ ] A `d6` table with Clamp off: modifier `+3`, roll a 6: "No entry covers 9." and a note under **Roll** suggesting Clamp.
+      Recent rolls and the overlay show only the result.
+- [ ] Delete Table, Delete Folder, Delete Collection and Reset Used Results ask with a title naming the action; **No**
+      changes nothing.
+
 ## dddice
 
 - [ ] Choose **dddice** (guest): the dice panel prepares and a roll shows 3D dice and the right result.
@@ -375,3 +400,6 @@ Use a copy of real data with the five Fourth Kingdom selectors marked Manual-sel
       link, Manual-selection mark and setting is exactly as before, no row is Unique and Recent rolls are kept. 1.3.0 then
       refuses the data (it was made by a newer version) and changes nothing; to go back, close Gidubba and restore the
       backup copy in place of `tableforge.db` (changes made since the upgrade are lost).
+- [ ] From Gidubba 1.4.0 to 1.5.0: no data-format change, so no new backup copy appears. Every collection, table, Unique
+      mark, used result and setting is exactly as before. Settings → Apps still lists one **Gidubba** entry, now 1.5.0.
+      1.4.0 can still open the data afterwards, and `.tfcollection` files go both ways between 1.4.0 and 1.5.0.

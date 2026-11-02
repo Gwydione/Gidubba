@@ -32,7 +32,7 @@ public class PortableCollectionImportTests
             Start();
         }
 
-        public MainViewModel Start() => Main = new MainViewModel(Db, new FixedDice(1), _ => true,
+        public MainViewModel Start() => Main = new MainViewModel(Db, new FixedDice(1), (_, _) => true,
             chooseImportFile: () => File.Path, confirmImport: m => { Asked.Add(m); return Answer; }, showMessage: Shown.Add);
 
         public void Import() => Main.ImportCollectionCommand.Execute(null);
@@ -83,7 +83,7 @@ public class PortableCollectionImportTests
     public void Cancelling_the_file_choice_does_nothing()
     {
         using var w = new World();
-        var main = new MainViewModel(w.Db, new FixedDice(1), _ => true, chooseImportFile: () => null, confirmImport: m => { w.Asked.Add(m); return true; });
+        var main = new MainViewModel(w.Db, new FixedDice(1), (_, _) => true, chooseImportFile: () => null, confirmImport: m => { w.Asked.Add(m); return true; });
         main.ImportCollectionCommand.Execute(null);
         Assert.Empty(w.Asked);
         Assert.Empty(w.Db.GetCollections());

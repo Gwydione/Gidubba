@@ -103,7 +103,7 @@ public class UsabilityTests
         var c = db.CreateCollection("C");
         for (var i = 1; i <= count; i++)
             db.SaveTable(Fixtures.ScavengedItems(c.Id).Also(t => t.Name = $"Table {i}"));
-        return new MainViewModel(db, new FixedDice(6), _ => true);
+        return new MainViewModel(db, new FixedDice(6), (_, _) => true);
     }
 
     [Fact]

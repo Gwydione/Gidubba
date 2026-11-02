@@ -267,6 +267,9 @@ public sealed class RollStepViewModel(RollableTable table, bool isFirst) : Obser
     public string AutoFollowedFrom { get; init; } = "";
     public bool IsAutoFollowed => AutoFollowedFrom.Length > 0;
 
+    /// <summary>A step added by Back to the original table (see <see cref="RollViewModel.ReturnToOriginalCommand"/>): it says so.</summary>
+    public bool IsReturn { get; init; }
+
     /// <summary>A Manual-selection table (see <see cref="RollableTable.IsManualSelection"/>): the step says its result is meant to be chosen.</summary>
     public bool IsManualSelection => Table.IsManualSelection;
 
@@ -361,11 +364,12 @@ public sealed class RollViewModel : ObservableObject
     private int _autoFollowStep;
     private bool _stopRequested;
     private CancellationTokenSource? _rollCancel;
-    private readonly Func<string, bool> _confirm;
+    private readonly Func<string, string, bool> _confirm;
     private (int Used, int Unique) _usedCounts;
     private bool _usedUnreadable;
 
-    /// <param name="tableUsed">Called when a table becomes the current rollable table by being followed to (recent tables).</param>
+    /// <param name="tableUsed">Called when a table becomes the current rollable table by being followed to, or by Back to the
+    /// original table (recent tables, and the table selected in the list).</param>
     /// <param name="rolled">Called once for every actual resolved roll, with a snapshot of what was shown (recent rolls).
     /// Never called for a followed link or an invalid manual entry.</param>
     /// <param name="diceReady">Whether the chosen dice provider can roll right now (dddice is still preparing, for example). Null means always.</param>
@@ -382,15 +386,16 @@ public sealed class RollViewModel : ObservableObject
     /// setting of this screen's own, off.</param>
     /// <param name="usedResults">Which Unique rows of a table have been used (see <see cref="UniqueResults"/>). Null means kept in
     /// this screen's memory only.</param>
-    /// <param name="confirm">Asks the person a yes/no question (Reset Used Results…). Null means never confirmed, so nothing is reset.</param>
+    /// <param name="confirm">Asks the person a yes/no question, given the question and a title naming the action ("Reset Used
+    /// Results"). Null means never confirmed, so nothing is reset.</param>
     public RollViewModel(RollableTable table, IDiceProvider dice, Func<long, RollableTable?>? loadTable = null,
         Action<long>? tableUsed = null, Action<RollSnapshot>? rolled = null, Func<bool>? diceReady = null, Action<string>? copyText = null,
         Func<SaveFileRequest, string?>? chooseSaveFile = null, OverlayPublisher? overlay = null, Func<RollableTable, string?>? exportPum = null,
-        AutoFollowSetting? autoFollow = null, UsedResultsStore? usedResults = null, Func<string, bool>? confirm = null)
+        AutoFollowSetting? autoFollow = null, UsedResultsStore? usedResults = null, Func<string, string, bool>? confirm = null)
     {
         _dice = dice;
         _usedResults = usedResults ?? UsedResultsStore.InMemory();
-        _confirm = confirm ?? (_ => false);
+        _confirm = confirm ?? ((_, _) => false);
         AutoFollow = autoFollow ?? new AutoFollowSetting();
         _overlay = overlay;
         _copyText = copyText ?? ClipboardText.Set;
@@ -405,6 +410,7 @@ public sealed class RollViewModel : ObservableObject
         ResolveManualCommand = new RelayCommand(ResolveManual, () => !IsRolling);
         StopCommand = new RelayCommand(CancelRoll, () => IsRolling);
         ResetUsedResultsCommand = new RelayCommand(ResetUsedResults, () => !IsRolling && _usedCounts.Used > 0);
+        ReturnToOriginalCommand = new RelayCommand(ReturnToOriginal, () => !IsRolling && ShowReturnToOriginal);
         CopyTableTextCommand = new RelayCommand(() => CopyTableText(TableTextSeparator.Tab), () => Current.Table.ResultSets.Count > 0);
         CopyTableTextSpacesCommand = new RelayCommand(() => CopyTableText(TableTextSeparator.Space), () => Current.Table.ResultSets.Count > 0);
         CopyForSojourCommand = new RelayCommand(CopyForSojour, () => Current.Table.ResultSets.Count > 0);
@@ -845,7 +851,7 @@ public sealed class RollViewModel : ObservableObject
         var count = _usedCounts.Used;
         var message = $"Reset the used results for \"{table.Name}\"?\n\n{count} used Unique {(count == 1 ? "result" : "results")} will be " +
             "available to roll again. Which rows are Unique does not change.";
-        if (!_confirm(message)) return;
+        if (!_confirm(message, "Reset Used Results")) return;
         try
         {
             _usedResults.Reset(table.Id);
@@ -1208,7 +1214,8 @@ public sealed class RollViewModel : ObservableObject
         var clampNote = clamped is null ? "" : $"Resolved as {lookup} (clamped)";
 
         var lines = new List<ResultLineViewModel>();
-        foreach (var r in TableResolver.Resolve(step.Table, lookup).Results)
+        var resolved = TableResolver.Resolve(step.Table, lookup).Results;
+        foreach (var r in resolved)
         {
             var heading = r.ResultSet.Name;
             lines.Add(r.Status switch
@@ -1242,6 +1249,22 @@ public sealed class RollViewModel : ObservableObject
         // What the user saw, as text: each set's output, headed by the set's name when it has one.
         var shown = string.Join("\n", lines.Select(l => l.HasHeading ? $"{l.Heading}: {l.Text}" : l.Text));
         _rolled?.Invoke(new RollSnapshot(step.Table.Id, step.Table.Name, dice.ToString(), roll, shown, situational, clamped, rerolled));
+
+        // Only a hint beside the controls: the result itself, Recent Rolls and the overlay say exactly what they always did.
+        if (fromProvider && situational != 0 && resolved.Any(r => r.Status == ResolutionStatus.NoMatch))
+            Message = ModifierOutsideTableHint(step.Table, roll);
+    }
+
+    /// <summary>
+    /// When a situational modifier took a roll past the rows of a table that could clamp but doesn't, where the fix is: "The
+    /// modifier took the roll above this table's highest row. To use the nearest row instead, turn on Clamp in Edit table."
+    /// Empty otherwise (Clamp on, not available for this table, or a roll inside the table's range that falls in a gap).
+    /// </summary>
+    public static string ModifierOutsideTableHint(RollableTable table, int roll)
+    {
+        if (table.ClampResultsToRange || !TableClamp.TryGetRange(table, out var min, out var max) || (roll >= min && roll <= max)) return "";
+        return $"The modifier took the roll {(roll < min ? "below this table's lowest" : "above this table's highest")} row. " +
+            "To use the nearest row instead, turn on Clamp in Edit table.";
     }
 
     private ResultLineViewModel MatchedLine(string heading, TableEntry entry)
@@ -1284,9 +1307,41 @@ public sealed class RollViewModel : ObservableObject
     private void Follow(ResultLineViewModel line, string autoFollowedFrom = "")
     {
         if (!line.IsActive || line.LinkTarget is null) return;
+        EnterStep(new RollStepViewModel(line.LinkTarget, isFirst: false) { AutoFollowedFrom = autoFollowedFrom });
+    }
 
+    // ---- Back to the original table ------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// True when the current table is not the one this screen was opened on (after following one or more links, by hand or by
+    /// auto-follow). Never true on the original table itself, including when a chain of links loops back to it.
+    /// </summary>
+    public bool ShowReturnToOriginal => Current.Table.Id != Steps[0].Table.Id;
+
+    /// <summary>"← Back to Area Type": names the table this screen was opened on.</summary>
+    public string ReturnToOriginalLabel => $"← Back to {Steps[0].Title}";
+
+    /// <summary>
+    /// Back to the original table: makes the table this screen was opened on the current table again, exactly as following a
+    /// link to it would (a new step at the end of the trail; every earlier step and result stays as it was). Never rolls,
+    /// never returns by itself, and is unavailable while anything is being rolled.
+    /// </summary>
+    public ICommand ReturnToOriginalCommand { get; }
+
+    private void ReturnToOriginal()
+    {
+        if (IsRolling || !ShowReturnToOriginal) return;
+        EnterStep(new RollStepViewModel(Steps[0].Table, isFirst: false) { IsReturn = true });
+    }
+
+    /// <summary>
+    /// Makes <paramref name="step"/> the current table: earlier links stop being followable, and everything that belongs to the
+    /// table it was typed or chosen for (manual entry, modifier, roll count, export choice, message) starts afresh.
+    /// </summary>
+    private void EnterStep(RollStepViewModel step)
+    {
         DeactivateLinks();
-        Steps.Add(new RollStepViewModel(line.LinkTarget, isFirst: false) { AutoFollowedFrom = autoFollowedFrom });
+        Steps.Add(step);
         ManualRollText = "";
         ModifierText = "0"; // a modifier belongs to the table it was typed for, never the one followed to
         RollCount = 1;      // and so does a choice of several rolls
@@ -1314,8 +1369,9 @@ public sealed class RollViewModel : ObservableObject
         Raise(nameof(HasModifierError));
         Raise(nameof(ModifierError));
         Raise(nameof(IsManualSelection));
+        Raise(nameof(ShowReturnToOriginal));
         ShowUsedResults();
-        _tableUsed?.Invoke(line.LinkTarget.Id);
+        _tableUsed?.Invoke(step.Table.Id);
     }
 
     private void DeactivateLinks()

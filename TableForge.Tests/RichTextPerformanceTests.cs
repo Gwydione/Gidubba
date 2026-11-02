@@ -60,7 +60,7 @@ public class RichTextPerformanceTests
         var c = db.CreateCollection("C");
         db.SaveTable(Large(c.Id, "Plain", formatted: false));
         db.SaveTable(Large(c.Id, "Formatted", formatted: true));
-        var main = new MainViewModel(db, new FixedDice(500), _ => true);
+        var main = new MainViewModel(db, new FixedDice(500), (_, _) => true);
 
         (double Open, double Keystroke, double Roll) Measure(string name)
         {

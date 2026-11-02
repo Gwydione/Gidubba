@@ -55,7 +55,7 @@ internal sealed class UiHarness : IDisposable
             seed(Db, Collection);
         }
         Dice = new FixedDice(roll);
-        Main = new MainViewModel(Db, Dice, _ => true, copyText: Copied.Add, chooseSaveFile: ChooseSave,
+        Main = new MainViewModel(Db, Dice, (_, _) => true, copyText: Copied.Add, chooseSaveFile: ChooseSave,
             chooseCollectionFile: ChooseSave, chooseImportFile: () => ImportPath, confirmImport: _ => true,
             reviewPumExport: review => { PumReviews.Add(review); return SavePumReview; }, choosePumFile: ChooseSave,
             now: () => new DateTime(2026, 10, 24, 12, 0, 0));

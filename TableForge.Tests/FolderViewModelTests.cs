@@ -23,7 +23,7 @@ public class FolderViewModelTests
         }
 
         /// <summary>Builds the view model once the database has been seeded, exactly as the app would open on existing data.</summary>
-        public MainViewModel Start() => Main = new MainViewModel(Db, new FixedDice(1), message => { Confirmations.Add(message); return ConfirmAnswer; });
+        public MainViewModel Start() => Main = new MainViewModel(Db, new FixedDice(1), (message, _) => { Confirmations.Add(message); return ConfirmAnswer; });
 
         public void Save(string name, long? folderId = null) =>
             Db.SaveTable(Fixtures.ParseAndBuild($"d6 {name}\n1-6 x", Collection.Id).Also(t => t.FolderId = folderId));

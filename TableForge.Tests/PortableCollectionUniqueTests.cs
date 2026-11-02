@@ -339,7 +339,7 @@ public class PortableCollectionUniqueTests
         File.WriteAllBytes(path, Bytes(doc));
         try
         {
-            var main = new MainViewModel(db, new FixedDice(1), _ => true, chooseImportFile: () => path, confirmImport: _ => true);
+            var main = new MainViewModel(db, new FixedDice(1), (_, _) => true, chooseImportFile: () => path, confirmImport: _ => true);
             main.ImportCollectionCommand.Execute(null);
         }
         finally { File.Delete(path); }

@@ -2,7 +2,7 @@
 
 **Gidubba turns random tables from RPG books and PDFs into fast, searchable, rollable digital tables.**
 
-Version 1.4.0 · Windows 10/11 (64-bit) · by RPG Frequencies
+Version 1.5.0 · Windows 10/11 (64-bit) · by RPG Frequencies
 
 **Formerly TableForge.** Gidubba is the new name for TableForge, from version 1.2.0. Only the name and icon changed:
 installing Gidubba over TableForge upgrades it in place and keeps all your tables and settings. Some technical names
@@ -152,6 +152,13 @@ components are listed in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
 3. Choose a table to open it, then **Roll** (or type a number and press **Enter** to resolve a specific roll).
 4. If a result links to another table, a button appears; following it never rolls automatically, unless you turn on
    [Auto-follow linked tables](#auto-follow-linked-tables).
+5. After following one or more links, **← Back to …** (just above **Roll**) makes the table you started from current
+   again, as a new step at the bottom; every earlier result stays. It never happens by itself. The table list always
+   selects the table the Roll screen is on, so **Edit table** and **Delete table** act on that table (when the list's
+   folder or search hides it, nothing is selected and they are unavailable until it is shown).
+
+**Help & Tips**, at the bottom of the window, opens the [Gidubba guide](https://rpgfrequencies.com/gidubba-guide.html)
+in your web browser.
 
 Keyboard: in the table search box **Enter** opens the first match and **Escape** clears the search. In the table list the
 arrow keys move the highlight and **Enter** opens. In “Paste rows into this set…”, **Escape** closes it and **Ctrl+Enter**
@@ -280,8 +287,9 @@ not putting it back. Every other row stays repeatable. Use it for treasure that 
 events, or names you don't want to repeat.
 
 **Marking rows.** In Edit table each row has a **Unique** checkbox (or press **Ctrl+U** anywhere in the row). **Mark All
-Unique** and **Clear Unique**, beside **Add row**, change every row of the result set (of every result set, when they
-are shown side by side). Every row starts repeatable, including every row from before 1.4.0.
+Unique** and **Clear Unique**, just after **Clear Formatting** above the rows, change every row of the result set
+(of every result set, when they are shown side by side). Every row starts repeatable, including every row from before
+1.4.0.
 
 **Rolling.** Gidubba always rolls the table's own dice. A roll that lands on a used Unique row is discarded and the same
 dice are rolled again, so each result still available keeps its usual chance:
@@ -299,8 +307,9 @@ dice are rolled again, so each result still available keeps its usual chance:
   you type yourself on a used Unique row is refused: "Result already used — choose another result."
 
 **Seeing and resetting.** On the Roll screen Unique rows are tagged **Unique**; used ones are tagged **Used** and shown
-in grey, still readable. A table with Unique rows shows "Unique results: 3 of 8 used" and **Reset Used Results…**, which
-asks first and makes every used result of that table available again. It does not change which rows are Unique.
+in grey, still readable. A table with Unique rows shows "Unique results: 3 of 8 used" and **Reset Used Results…** right
+under **Roll**, which asks first and makes every used result of that table available again. It does not change which
+rows are Unique.
 
 Which rows have been used belongs to the row, not its text: editing a row's text or range keeps it used, and deleting
 the row deletes its used state too. It is kept in your database only. It is never exported, so an imported collection
@@ -552,7 +561,9 @@ time; nothing about it is saved with the table, and the table's own dice (`2d6+1
 
 - The sum is used exactly as calculated, even outside the table: a d6 that rolls 1 with `-1` is **0**, which usually
   shows "No entry covers 0." Gidubba never rerolls or picks the nearest row, and clamps only a table you have
-  explicitly set to (see **Clamp to table range** below). That roll still uses the modifier up.
+  explicitly set to (see **Clamp to table range** below). That roll still uses the modifier up. When the table could
+  clamp, a note under **Roll** says so: "The modifier took the roll below this table's lowest row. To use the nearest
+  row instead, turn on Clamp in Edit table." (The result itself, Recent rolls and the overlay are unchanged.)
 - Anything that is not one whole number in range (`+`, `2.5`, `1d4`, `+1001`) turns Roll off and says why; it is never
   read as 0. **Enter** in the box rolls. Moving into the box (**Tab**, **Shift+Tab** or a click) selects its value, and so
   does the reset to 0 after a roll, so what you type next replaces the 0.
@@ -870,7 +881,7 @@ dotnet publish TableForge\TableForge.csproj -p:PublishProfile=win-x64-folder
 ### Confirming the running exe matches current source
 
 The bottom-right of the main window shows the running build's version and the exact time its main assembly was
-written to disk, e.g. `1.4.0 · built 2026-10-27 12:45 local` (`TableForge/AppInfo.cs`). The build time comes
+written to disk, e.g. `1.5.0 · built 2026-11-02 12:45 local` (`TableForge/AppInfo.cs`). The build time comes
 from the DLL's own file timestamp, not a manually-maintained field, so it stays accurate without anyone
 remembering to bump it. To check a specific exe from the command line instead:
 

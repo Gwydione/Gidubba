@@ -267,7 +267,7 @@ public class StreamingOverlayNonPublishingTests : IDisposable
         var other = _db.CreateCollection("Beta");
         Save(_db, other.Id, "Elsewhere", "d6", null, Set("", E(1, 6, "Far away")));
 
-        _main = new MainViewModel(_db, new FixedDice(15), confirm: _ => true, copyText: _copied.Add,
+        _main = new MainViewModel(_db, new FixedDice(15), confirm: (_, _) => true, copyText: _copied.Add,
             chooseSaveFile: _ => null, chooseCollectionFile: _ => _file.Path, chooseImportFile: () => _file.Path,
             confirmImport: _ => true, showMessage: _ => { }, overlay: _overlay);
         Open("Weather");
