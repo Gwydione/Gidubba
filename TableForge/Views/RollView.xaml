@@ -251,6 +251,15 @@
                         Command="{Binding ResetUsedResultsCommand}"
                         ToolTip="Make every used Unique result of this table available to roll again. Which rows are Unique does not change." />
             </WrapPanel>
+            <!-- The current table's own options, read-only: what Clamp actually does here and whether it is a Manual-selection table.
+                 They are changed only in Edit table (the tooltip says so). The two items wrap onto two lines in a narrow window. -->
+            <WrapPanel x:Name="TableOptionsBar" Margin="0,8,0,0" HorizontalAlignment="Left" Background="Transparent"
+                       ToolTip="{Binding TableOptionsToolTip}">
+                <TextBlock x:Name="ClampStatusText" Text="{Binding ClampStatus}" Foreground="#666" Margin="0,0,16,0"
+                           AutomationProperties.HelpText="{Binding TableOptionsToolTip}" />
+                <TextBlock x:Name="ManualSelectionStatusText" Text="{Binding ManualSelectionStatus}" Foreground="#666"
+                           AutomationProperties.HelpText="{Binding TableOptionsToolTip}" />
+            </WrapPanel>
             <!-- One app-wide setting, remembered between sessions. Off is exactly the behavior Gidubba always had. -->
             <CheckBox x:Name="AutoFollowBox" Content="Auto-follow linked tables" IsChecked="{Binding AutoFollow.IsOn}" Margin="0,8,0,0"
                       HorizontalAlignment="Left"

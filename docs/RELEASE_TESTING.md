@@ -217,6 +217,12 @@ Use a table whose results link to a second table, which links to a third.
       tags are small rounded labels right after each result's text (under a long result), also in side-by-side columns.
 - [ ] Edit table: **Mark All Unique** and **Clear Unique** follow **Clear Formatting** above the rows (on the next line at
       1000×640, nothing cut off), in both the one-set and side-by-side views.
+- [ ] Under **Roll**, a small grey line shows the current table's options: a `d6` table with Clamp on reads "Clamp: On" and
+      "Manual selection: Off"; with Clamp off, "Clamp: Off"; a `d66` table, "Clamp: Not available", and
+      hovering adds "Clamp is not available for d66 tables." to "These are table settings. To change them, use Edit
+      table in the table list." A Manual-selection table reads "Manual selection: On". Follow a link, go **Back** and open
+      another table: the line always describes the current table. Change Clamp in **Edit table** and save: the line
+      changes. At 1000×640 nothing is cut off. Nothing on the line can be clicked or changed.
 - [ ] A `d6` table with Clamp off: modifier `+3`, roll a 6: "No entry covers 9." and a note under **Roll** suggesting Clamp.
       Recent rolls and the overlay show only the result.
 - [ ] Delete Table, Delete Folder, Delete Collection and Reset Used Results ask with a title naming the action; **No**

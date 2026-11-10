@@ -593,6 +593,9 @@ clamps: every roll past it already lands on that row.
   otherwise the checkbox is unavailable and says why. It is never available for d66. Editing a clamped table into one of
   those shapes turns Clamp off when you save (the checkbox shows that before you do).
 - **Recent rolls** keeps both numbers, e.g. `8 (+2) → 6 (clamped)`, and the result of the row actually used.
+- The Roll screen shows the current table's options in a small grey line under **Roll**: "Clamp: On", "Clamp: Off" or
+  "Clamp: Not available" (d66, result sets with different ranges, or no rows; hover for why), and "Manual selection:
+  On" or "Off". The line is read-only; change these options in **Edit table**.
 
 ## Inline dice in results
 

@@ -750,6 +750,29 @@ public sealed class RollViewModel : ObservableObject
     /// <summary>True while the current table is a Manual-selection table: the screen says its result is meant to be chosen.</summary>
     public bool IsManualSelection => Current.Table.IsManualSelection;
 
+    // ---- Table options (read-only) --------------------------------------------------------------------------------------
+
+    /// <summary>Where the current table's options are changed: the Roll screen only shows them.</summary>
+    public const string TableOptionsHint = "These are table settings. To change them, use Edit table in the table list.";
+
+    /// <summary>
+    /// "Clamp: On", "Clamp: Off" or "Clamp: Not available" for the current table, by what Clamp actually does there: a table
+    /// with no clamp range (d66, result sets with different ranges, no rows) is "Not available" whatever its stored option says.
+    /// </summary>
+    public string ClampStatus => "Clamp: " + (!TableClamp.TryGetRange(Current.Table, out _, out _) ? "Not available"
+        : Current.Table.ClampResultsToRange ? "On" : "Off");
+
+    /// <summary>"Manual selection: On" or "Manual selection: Off" for the current table.</summary>
+    public string ManualSelectionStatus => "Manual selection: " + (IsManualSelection ? "On" : "Off");
+
+    /// <summary>
+    /// <see cref="TableOptionsHint"/>, followed by why Clamp is not available when it isn't (the same reason Edit table gives).
+    /// Also the options line's accessible help text.
+    /// </summary>
+    public string TableOptionsToolTip => TableClamp.TryGetRange(Current.Table, out _, out _, out var reason)
+        ? TableOptionsHint
+        : $"{TableOptionsHint}\n{reason}";
+
     /// <summary>
     /// Asks the chosen provider for a final number and, only when it has one, resolves and shows it. A failed or cancelled roll
     /// changes nothing on screen except a message; it never falls back to another provider by itself.
@@ -1369,6 +1392,9 @@ public sealed class RollViewModel : ObservableObject
         Raise(nameof(HasModifierError));
         Raise(nameof(ModifierError));
         Raise(nameof(IsManualSelection));
+        Raise(nameof(ClampStatus));
+        Raise(nameof(ManualSelectionStatus));
+        Raise(nameof(TableOptionsToolTip));
         Raise(nameof(ShowReturnToOriginal));
         ShowUsedResults();
         _tableUsed?.Invoke(step.Table.Id);

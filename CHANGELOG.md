@@ -14,6 +14,8 @@ Each released version of Gidubba (formerly TableForge), newest first. The full n
 - **Unique Results:** **Reset Used Results…** and the used count sit right under **Roll**; the **Unique** / **Used**
   tags are small labels right after each result's text; in Edit table, **Mark All Unique** and **Clear Unique** are
   above the rows, after **Clear Formatting**.
+- A read-only line under **Roll** shows the current table's options: **Clamp: On / Off / Not available** (by what
+  Clamp actually does there) and **Manual selection: On / Off**; they are changed in **Edit table**.
 - A note under **Roll** when a situational modifier takes a roll outside a table that could clamp. Confirmation
   questions have titles naming the action.
 - No data-format change (still schema 12): 1.4.0 can still open the data. Collection files, the installer identity,
