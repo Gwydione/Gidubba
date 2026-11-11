@@ -45,7 +45,7 @@ public partial class App : Application
             // Built-in is the default and does no network work. dddice is only prepared once it has been chosen (or was chosen last time).
             // A connected dddice account is read from its local file here, but only checked with dddice when dddice is prepared.
             var rest = new DddiceRest();
-            var connection = new DddiceConnection(new DddiceAccountStore(DataFolder));
+            var connection = new DddiceConnection(new DddiceAccountStore(DataFolder), new DddiceRoomMemoryStore(DataFolder));
             _dddice = new WebViewDddiceRoller(window.AttachDiceView, System.IO.Path.Combine(DataFolder, "WebView2"), rest, connection);
             var dice = new DiceProviderViewModel(new BuiltInDiceProvider(), new DddiceDiceProvider(_dddice), LoadDicePreference, SaveDicePreference,
                 connection, openAccount: () => OpenDddiceAccount(window, connection, rest));

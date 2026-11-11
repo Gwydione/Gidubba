@@ -26,10 +26,12 @@ public enum DddiceChange { Identity, Status }
 public sealed class DddiceConnection
 {
     private readonly IDddiceAccountStore _store;
+    private readonly IDddiceRoomMemory _rooms;
 
-    public DddiceConnection(IDddiceAccountStore store)
+    public DddiceConnection(IDddiceAccountStore store, IDddiceRoomMemory? rooms = null)
     {
         _store = store;
+        _rooms = rooms ?? new InMemoryDddiceRoomMemory();
         var loaded = store.Load();
         (Account, State) = loaded.State switch
         {
@@ -64,13 +66,18 @@ public sealed class DddiceConnection
     public bool RoomChanged { get; private set; }
 
     /// <summary>
-    /// A newly approved activation. A previous choice of theme and room is kept (a reconnect should not lose it); both are checked
-    /// against dddice again before use, so a different account simply gets asked for a theme and given its own room.
-    /// Saving happens first: if it fails, nothing changes.
+    /// A newly approved activation. A previous choice of theme is kept (checked against the Dice Box again before use). A room is
+    /// never carried from one known account to another: the account's own remembered room is used (it survives Disconnect and
+    /// restarts). When an account is not known yet, a previous room is kept only as a candidate that dddice must confirm belongs to
+    /// this account before it is reused (see <see cref="PrepareSessionAsync"/>). Saving happens first: if it fails, nothing changes.
     /// </summary>
-    public void Connect(string token, string? displayName)
+    public void Connect(string token, string? displayName, string? accountId = null)
     {
-        var account = new DddiceAccount(token, displayName, Account?.RoomSlug, Account?.ThemeId, Account?.ThemeName);
+        var previous = Account;
+        var room = accountId is null
+            ? previous?.AccountId is null ? previous?.RoomSlug : null       // unconfirmed candidate: checked against the account's uuid later
+            : previous?.AccountId == accountId && previous.RoomSlug is { } own ? own : _rooms.Find(accountId);
+        var account = new DddiceAccount(token, displayName, room, previous?.ThemeId, previous?.ThemeName, accountId);
         _store.Save(account);
         Account = account;
         State = DddiceConnectionState.Connected;
@@ -87,12 +94,28 @@ public sealed class DddiceConnection
         Changed?.Invoke(this, DddiceChange.Identity);
     }
 
-    /// <summary>Remembers the account's room for next time. Failing to save only means a new room next run.</summary>
+    /// <summary>
+    /// Remembers the account's room for next time, in the account file and (keyed by the account's uuid) in the room memory that
+    /// outlives Disconnect. Failing to save only means a new room next run.
+    /// </summary>
     public void RememberRoom(string slug)
     {
-        if (Account is null || Account.RoomSlug == slug) return;
+        if (Account is null) return;
+        if (Account.AccountId is { } id)
+        {
+            try { _rooms.Remember(id, slug); } catch (Exception) { /* the room still works for this run */ }
+        }
+        if (Account.RoomSlug == slug) return;
         Account = Account with { RoomSlug = slug };
         try { _store.Save(Account); } catch (Exception) { /* the room still works for this run */ }
+    }
+
+    /// <summary>Records which dddice account the token belongs to (asked once per token). Failing to save only means asking again next run.</summary>
+    private void RememberAccountId(string id)
+    {
+        if (Account is null || Account.AccountId == id) return;
+        Account = Account with { AccountId = id };
+        try { _store.Save(Account); } catch (Exception) { /* asked again next run */ }
     }
 
     /// <summary>dddice refused the account. Kept as it is; the person decides (Reconnect or Disconnect).</summary>
@@ -103,7 +126,10 @@ public sealed class DddiceConnection
         Changed?.Invoke(this, DddiceChange.Status);
     }
 
-    /// <summary>Local only: forgets the token, theme and room, and deletes the file. The dddice account itself is not touched.</summary>
+    /// <summary>
+    /// Local only: forgets the token and theme and deletes the account file. The account's room stays in the room memory (no
+    /// credential is kept there), so connecting the same account again reuses it. The dddice account itself is not touched.
+    /// </summary>
     public void Disconnect()
     {
         _store.Delete();
@@ -117,6 +143,13 @@ public sealed class DddiceConnection
     /// Everything the dice page needs for the account: the Dice Box is loaded (which also checks the token), the saved theme must
     /// still be there and compatible, and the saved room is reused if dddice still lets this account use it, or replaced.
     /// Never falls back to a guest or another theme: each problem is reported with what to do.
+    /// <para>
+    /// A room is reused only for the account it belongs to. The account's dddice uuid (GET /user, once per token) decides which
+    /// remembered room is a candidate; GET /room/{slug} must then answer, and when it names the room's user, that must be this
+    /// account. A room remembered for this account is trusted if dddice does not name its user; a room from a file written before
+    /// accounts were identified is reused only when dddice confirms it is this account's. Only a room that is gone or not this
+    /// account's is replaced, by one creation; a failed check or a refused creation (402) never leads to another attempt.
+    /// </para>
     /// </summary>
     public async Task<DddiceSession> PrepareSessionAsync(DddiceRest rest, CancellationToken ct)
     {
@@ -134,9 +167,18 @@ public sealed class DddiceConnection
             if (!theme.IsCompatible)
                 throw new DddiceException(DddiceMessages.ThemeIncompatible(theme.Name, theme.Reason)) { IsAccountProblem = true };
 
-            var previous = account.RoomSlug;
-            var room = previous is { } saved && await rest.RoomIsAccessibleAsync(account.Token, saved, ct)
-                ? saved
+            var accountId = account.AccountId ?? await rest.GetAccountIdAsync(account.Token, ct);
+            RememberAccountId(accountId);
+
+            // The account file's room is this account's when it was saved for this uuid; one saved before the account was known only
+            // offers a candidate that dddice must confirm. The room memory is keyed by uuid, so it only ever offers this account's room.
+            var fromFile = account.RoomSlug is { } saved && (account.AccountId == accountId || account.AccountId is null) ? saved : null;
+            var remembered = fromFile is null ? _rooms.Find(accountId) : null;
+            var previous = fromFile ?? remembered;
+            var trusted = remembered is not null || account.AccountId == accountId;
+
+            var room = previous is not null && await IsThisAccountsRoomAsync(rest, account.Token, previous, accountId, trusted, ct)
+                ? previous
                 : await rest.CreateAccountRoomAsync(account.Token, ct);
             RememberRoom(room);
             // A saved room dddice no longer lets this account use was replaced: anything pointing at the old room (an OBS dice
@@ -153,6 +195,18 @@ public sealed class DddiceConnection
             MarkExpired();
             throw new DddiceException(DddiceMessages.Expired, isAuthProblem: true, inner: ex) { IsAccountProblem = true };
         }
+    }
+
+    /// <summary>
+    /// Whether <paramref name="slug"/> can be used by this account. Gone or refused (403/404): no. When dddice names the room's user,
+    /// it must be this account. When it does not, a room remembered for this account is trusted (as before), an unconfirmed one is
+    /// not. Any other failure is thrown by the check, so it never leads to a new room.
+    /// </summary>
+    private static async Task<bool> IsThisAccountsRoomAsync(DddiceRest rest, string token, string slug, string accountId, bool trusted, CancellationToken ct)
+    {
+        var check = await rest.CheckRoomAsync(token, slug, ct);
+        if (!check.IsAccessible) return false;
+        return check.OwnerId is { } owner ? string.Equals(owner, accountId, StringComparison.OrdinalIgnoreCase) : trusted;
     }
 }
 

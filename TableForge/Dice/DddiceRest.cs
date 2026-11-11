@@ -13,8 +13,11 @@ public sealed record DddiceActivationCode(string Code, string Secret, DateTimeOf
     public override string ToString() => $"dddice activation {Code} (expires {ExpiresAt:u})"; // never the secret
 }
 
-/// <summary>One poll of an activation code. <see cref="Token"/> is null while the person has not approved it yet.</summary>
-public sealed record DddiceActivationPoll(string? Token, string? DisplayName)
+/// <summary>
+/// One poll of an activation code. <see cref="Token"/> is null while the person has not approved it yet. <see cref="AccountId"/> is
+/// the approved account's dddice user uuid when dddice sent one (it identifies the account, not a secret).
+/// </summary>
+public sealed record DddiceActivationPoll(string? Token, string? DisplayName, string? AccountId = null)
 {
     public override string ToString() => Token is null ? "dddice activation: waiting" : $"dddice activation: approved ({DisplayName ?? "Connected"})"; // never the token
 }
@@ -69,7 +72,9 @@ public sealed class DddiceRest : IDisposable
         if (DataOf(await SendAsync(HttpMethod.Get, $"activate/{Uri.EscapeDataString(activation.Code)}", null, auth, DddiceCaller.Activation, ct)) is not JsonObject data)
             throw new DddiceException("dddice sent an activation answer Gidubba could not read.");
         var token = Text(data["token"]);
-        return new DddiceActivationPoll(string.IsNullOrWhiteSpace(token) ? null : token, token is null ? null : DisplayNameOf(data["user"]));
+        return string.IsNullOrWhiteSpace(token)
+            ? new DddiceActivationPoll(null, null)
+            : new DddiceActivationPoll(token, DisplayNameOf(data["user"]), UuidOf(data["user"]));
     }
 
     /// <summary>
@@ -93,21 +98,34 @@ public sealed class DddiceRest : IDisposable
         return themes;
     }
 
-    /// <summary>GET /room/{slug}: whether the account's saved room can still be used. False for 403/404 (gone or no longer ours).</summary>
-    public async Task<bool> RoomIsAccessibleAsync(string token, string slug, CancellationToken ct)
+    /// <summary>
+    /// GET /user ("Get Authenticated User"): the uuid of the dddice account the token belongs to, which is what a remembered room is
+    /// kept under. A token always belongs to the same account, so this is asked once per token. Unreadable answer: an account problem.
+    /// </summary>
+    public async Task<string> GetAccountIdAsync(string token, CancellationToken ct)
+    {
+        var json = await SendAsync(HttpMethod.Get, "user", null, Bearer(token), DddiceCaller.Account, ct);
+        return UuidOf(DataOf(json)) ?? throw new DddiceException(DddiceMessages.AccountUnconfirmed) { IsAccountProblem = true };
+    }
+
+    /// <summary>
+    /// GET /room/{slug}: whether the room can still be used (false for 403/404: gone or no longer ours) and, when dddice says,
+    /// the uuid of its user (the account that created it). Any other failure is thrown, so a hiccup never leads to a new room.
+    /// </summary>
+    public async Task<DddiceRoomCheck> CheckRoomAsync(string token, string slug, CancellationToken ct)
     {
         try
         {
-            await SendAsync(HttpMethod.Get, $"room/{Uri.EscapeDataString(slug)}", null, Bearer(token), DddiceCaller.Account, ct);
-            return true;
+            var json = await SendAsync(HttpMethod.Get, $"room/{Uri.EscapeDataString(slug)}", null, Bearer(token), DddiceCaller.Account, ct);
+            return new DddiceRoomCheck(true, DataOf(json) is JsonObject data ? UuidOf(data["user"]) : null);
         }
         catch (DddiceHttpException ex) when (ex.Status is HttpStatusCode.NotFound or HttpStatusCode.Forbidden)
         {
-            return false;
+            return new DddiceRoomCheck(false, null);
         }
     }
 
-    /// <summary>POST /room for a connected account.</summary>
+    /// <summary>POST /room for a connected account. A 402 ("Subscription Required") is reported as a possible room limit, never retried.</summary>
     public async Task<string> CreateAccountRoomAsync(string token, CancellationToken ct) => await CreateRoomAsync(token, DddiceCaller.Account, ct);
 
     public static DddiceException MalformedDiceBox() => new("Gidubba could not read your dddice Dice Box.");
@@ -152,6 +170,7 @@ public sealed class DddiceRest : IDisposable
         (HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden, DddiceCaller.Guest) => new DddiceHttpException($"dddice refused the guest login ({(int)status}).", status, isAuthProblem: true),
         (HttpStatusCode.Unauthorized, DddiceCaller.Account) => new DddiceHttpException(DddiceMessages.Expired, status, isAuthProblem: true),
         (HttpStatusCode.Unauthorized, DddiceCaller.Activation) => new DddiceHttpException("dddice did not accept this activation code. You can try again.", status, isAuthProblem: true),
+        (HttpStatusCode.PaymentRequired, DddiceCaller.Account) when path == "room" => new DddiceHttpException(DddiceMessages.RoomLimit, status),
         (>= HttpStatusCode.InternalServerError, not DddiceCaller.Guest) => new DddiceHttpException(DddiceMessages.Unavailable, status) { IsTemporary = true },
         _ => new DddiceHttpException($"dddice answered with an error ({(int)status}) while contacting {path.Split('/')[0]}.", status),
     };
@@ -180,6 +199,10 @@ public sealed class DddiceRest : IDisposable
         return null;
     }
 
+    /// <summary>The "uuid" of a dddice user object, or null.</summary>
+    private static string? UuidOf(JsonNode? user) =>
+        user is JsonObject o && Text(o["uuid"]) is { } s && !string.IsNullOrWhiteSpace(s) ? s.Trim() : null;
+
     private static bool TryParseTime(string? text, out DateTimeOffset value) =>
         DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out value);
 
@@ -192,6 +215,9 @@ public sealed class DddiceHttpException(string message, HttpStatusCode status, b
     public HttpStatusCode Status { get; } = status;
 }
 
+/// <summary>What GET /room/{slug} said: whether the room can be used, and the uuid of its user (its creator) when dddice sent one.</summary>
+public sealed record DddiceRoomCheck(bool IsAccessible, string? OwnerId);
+
 /// <summary>The account-mode messages a person sees, in one place.</summary>
 public static class DddiceMessages
 {
@@ -201,6 +227,9 @@ public static class DddiceMessages
     public const string ActivationTimedOut = "Connection timed out. You can try again.";
     public const string ChooseTheme = "Choose a dddice theme in Account…";
     public const string RoomChanged = "dddice room changed. Your OBS dice source may need to be updated.";
+    public const string RoomLimit = "dddice would not create a room for Gidubba (402). Your dddice account may have reached its room limit. " +
+                                    "Delete rooms you no longer use on dddice.com, then Try again.";
+    public const string AccountUnconfirmed = "Gidubba could not confirm which dddice account is connected. Try again shortly, or reconnect in Account…";
     public static string ThemeMissing(string name) => $"Your theme \"{name}\" is no longer in your dddice Dice Box. Choose another in Account…";
     public static string ThemeIncompatible(string name, string reason) => $"Your theme \"{name}\" can't be used by Gidubba ({reason}). Choose another in Account…";
 }

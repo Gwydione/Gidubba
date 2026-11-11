@@ -352,7 +352,7 @@ public class DddiceRestAccountTests
         var http = new FakeDddiceHttp().On("GET", "room/room-1", (status, """{"data":{"slug":"room-1"}}"""));
         using var rest = new DddiceRest(http);
 
-        Assert.Equal(usable, await rest.RoomIsAccessibleAsync("acct-token", "room-1", default));
+        Assert.Equal(usable, (await rest.CheckRoomAsync("acct-token", "room-1", default)).IsAccessible);
         Assert.Equal("Bearer acct-token", http.Requests[0].Auth);
     }
 
@@ -581,7 +581,7 @@ public class DddiceAccountStoreTests : IDisposable
 /// <summary>Guest and account sessions: the guest flow is unchanged; an account uses its token, theme and room, and never becomes a guest.</summary>
 public class DddiceSessionTests
 {
-    private static readonly DddiceAccount Saved = new("acct-token", "Allen", "room-1", "my-blue", "My Blue Dice");
+    private static readonly DddiceAccount Saved = new("acct-token", "Allen", "room-1", "my-blue", "My Blue Dice", "acct-1");
 
     private static FakeDddiceHttp AccountApi(string? roomStatus = null) => new FakeDddiceHttp()
         .On("GET", "dice-box", (200, DiceBoxJson.Page(null, DiceBoxJson.Bees, DiceBoxJson.Blue, DiceBoxJson.Letter)))
@@ -793,9 +793,9 @@ public class DddiceSessionTests
         var connection = new DddiceConnection(store);
         connection.MarkExpired();
 
-        connection.Connect("new-token", null);
+        connection.Connect("new-token", null, "acct-1");
 
-        Assert.Equal(new DddiceAccount("new-token", null, "room-1", "my-blue", "My Blue Dice"), store.Saved);
+        Assert.Equal(new DddiceAccount("new-token", null, "room-1", "my-blue", "My Blue Dice", "acct-1"), store.Saved);
         Assert.Equal((DddiceConnectionState.Connected, "Connected"), (connection.State, connection.DisplayName));
 
         connection.SelectTheme(new DddiceTheme("dddice-letter", "Letter", false, "Missing d12"));

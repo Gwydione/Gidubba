@@ -472,7 +472,7 @@ public class StreamingOverlayDialogTests : IDisposable
 /// <summary>RC27 Streaming Overlay, phase 4: telling the person when dddice replaced the account's room.</summary>
 public class DddiceRoomChangeTests
 {
-    private static readonly DddiceAccount Saved = new("acct-token", "Allen", "room-1", "my-blue", "My Blue Dice");
+    private static readonly DddiceAccount Saved = new("acct-token", "Allen", "room-1", "my-blue", "My Blue Dice", "acct-1");
 
     private static FakeDddiceHttp Api(int savedRoomStatus) => new FakeDddiceHttp()
         .On("GET", "dice-box", (200, DiceBoxJson.Page(null, DiceBoxJson.Bees, DiceBoxJson.Blue, DiceBoxJson.Letter)))

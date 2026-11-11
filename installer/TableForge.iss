@@ -1,7 +1,7 @@
 ; Gidubba (formerly TableForge) per-user installer (Inno Setup 6).
 ;
 ; Build it with:   .\publish.ps1 -Installer      (publishes first, then compiles this script)
-; or by hand:      ISCC.exe /DAppVersion=1.5.0 installer\TableForge.iss   (after publish.ps1)
+; or by hand:      ISCC.exe /DAppVersion=1.5.1 installer\TableForge.iss   (after publish.ps1)
 ;
 ; Contract:
 ;   - Installs the self-contained publish\win-x64 folder to %LOCALAPPDATA%\Programs\TableForge, for the current Windows
@@ -9,7 +9,7 @@
 ;     (Gidubba starts without it; only dddice dice need it).
 ;   - AppId below never changes: a newer installer recognises an installed TableForge or Gidubba and replaces it in place.
 ;     1.2.0 renamed the product only: the install folder, TableForge.exe and the data folder keep their names.
-;   - The data lives in %LOCALAPPDATA%\TableForge (database, settings, dddice account, WebView2 profile, migration backups).
+;   - The data lives in %LOCALAPPDATA%\TableForge (database, settings, dddice account and rooms, WebView2 profile, migration backups).
 ;     This script never installs anything there, and neither upgrading nor uninstalling touches it: uninstall removes only
 ;     what was installed below (program files, Start Menu shortcut, uninstaller).
 ;   - The one thing an upgrade deletes is the Start Menu shortcut that 1.1.0 and earlier created as "TableForge", and only
@@ -33,7 +33,7 @@ VersionInfoCompany=RPG Frequencies
 VersionInfoCopyright=Copyright (c) 2026 RPG Frequencies
 VersionInfoProductName=Gidubba
 SetupIconFile=TableForge\Assets\Gidubba.ico
-VersionInfoVersion=1.5.0
+VersionInfoVersion=1.5.1
 VersionInfoProductTextVersion={#AppVersion}
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=

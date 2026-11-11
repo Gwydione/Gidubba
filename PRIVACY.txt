@@ -12,7 +12,10 @@ Gidubba (formerly TableForge) privacy
   dddice's own privacy policy applies to its service.
 - Gidubba never asks for or stores your dddice password. If you connect a dddice account, you approve the connection
   on dddice.com in your own browser. Gidubba then keeps dddice's access token in dddice-account.json, encrypted with
-  Windows (DPAPI) so that only your Windows user account can read it; Disconnect deletes it.
+  Windows (DPAPI) so that only your Windows user account can read it; Disconnect deletes it. So that reconnecting the
+  same account reuses its dddice room, Gidubba also keeps that account's dddice account id and room id in
+  dddice-rooms.json in the same data folder. They are not secret (no token, password or credential), they are never
+  sent anywhere except to dddice itself, and Disconnect keeps them; delete the file to forget them.
 - The Streaming Overlay is optional and off by default. While it is on, Gidubba lets programs on your own computer (such as
   OBS) read the current result (table name, roll value and result text) at 127.0.0.1; it is never reachable from the network
   and sends nothing anywhere. For dddice's dice in OBS, you copy dddice's own streaming link on dddice.com; Gidubba never

@@ -158,7 +158,7 @@ public sealed class DddiceAccountViewModel : ObservableObject
             State = DddiceAccountState.WaitingForApproval;
             var approved = await _poller.WaitForApprovalAsync(activation, cancel.Token);
 
-            _connection.Connect(approved.Token!, approved.DisplayName); // only now is anything saved
+            _connection.Connect(approved.Token!, approved.DisplayName, approved.AccountId); // only now is anything saved
             ActivationCode = "";
             State = DddiceAccountState.Connected;
             await LoadThemesAsync(cancel);

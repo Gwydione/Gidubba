@@ -233,6 +233,9 @@ Use a table whose results link to a second table, which links to a third.
 - [ ] Choose **dddice** (guest): the dice panel prepares and a roll shows 3D dice and the right result.
 - [ ] Optional, with a dddice account: Account… → Connect, approve on dddice.com, choose a theme, roll with it.
 - [ ] Restart: the account and theme are remembered.
+- [ ] (1.5.1) Account… → **Disconnect**, then **Connect** the same account and choose the theme: the dice are ready with
+      no "dddice room changed" note, **Open my dddice room** opens the same room as before, and dddice.com shows no new
+      room. `dddice-account.json` is gone after Disconnect; `dddice-rooms.json` stays and holds no token.
 - [ ] With the network off (or dddice failing), **Use Built-in Dice** still works and rolls normally.
 
 ## Streaming Overlay (OBS)
@@ -406,6 +409,9 @@ Use a copy of real data with the five Fourth Kingdom selectors marked Manual-sel
       link, Manual-selection mark and setting is exactly as before, no row is Unique and Recent rolls are kept. 1.3.0 then
       refuses the data (it was made by a newer version) and changes nothing; to go back, close Gidubba and restore the
       backup copy in place of `tableforge.db` (changes made since the upgrade are lost).
+- [ ] From Gidubba 1.5.0 to 1.5.1: no data-format change, so no new backup copy appears. A connected dddice account
+      stays connected with its theme, and keeps using the same room (no "dddice room changed" note). 1.5.0 can still
+      open the data and still uses the dddice account afterwards.
 - [ ] From Gidubba 1.4.0 to 1.5.0: no data-format change, so no new backup copy appears. Every collection, table, Unique
       mark, used result and setting is exactly as before. Settings → Apps still lists one **Gidubba** entry, now 1.5.0.
       1.4.0 can still open the data afterwards, and `.tfcollection` files go both ways between 1.4.0 and 1.5.0.

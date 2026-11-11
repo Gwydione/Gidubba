@@ -3,6 +3,18 @@
 Each released version of Gidubba (formerly TableForge), newest first. The full notes for each one are in
 `docs/release-notes/`. Versions before 1.2.0 were released as TableForge, and their entries keep that name.
 
+## 1.5.1
+
+- **Fix: a connected dddice account reuses its room after Disconnect and Connect**, also across restarts, instead of
+  creating a new room every time. Disconnect still deletes the login (token); the account's room id and dddice
+  account id, which are not secret, are kept in `dddice-rooms.json` in the data folder.
+- A room is only reused for the dddice account it belongs to (checked with dddice); a different account gets its own.
+- If dddice will not create a room (402), Gidubba says the account may have reached its room limit and does not try
+  again until you press **Try again**. A failed room check never creates a room.
+- Guest dice, rolling, collections, the Streaming Overlay and the data format (schema 12) are unchanged: 1.5.0 can
+  still open the data.
+- Notes: `docs/release-notes/1.5.1.md`
+
 ## 1.5.0
 
 - **New: Back to the original table.** After following links (by hand or with Auto-follow), **← Back to …** above

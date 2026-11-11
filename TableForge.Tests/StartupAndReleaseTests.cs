@@ -341,12 +341,12 @@ public class ReleaseTests
     }
 
     [Fact]
-    public void The_build_identifies_itself_as_the_stable_release_1_5_0()
+    public void The_build_identifies_itself_as_the_stable_release_1_5_1()
     {
-        Assert.Equal("1.5.0", AppInfo.Version);
+        Assert.Equal("1.5.1", AppInfo.Version);
         Assert.DoesNotContain("-", AppInfo.Version);                                    // a stable release: no prerelease suffix
-        Assert.Contains("<Version>1.5.0</Version>", ReadRepoFile("TableForge", "TableForge.csproj"));
-        Assert.Contains("VersionInfoVersion=1.5.0", ReadRepoFile("installer", "TableForge.iss"));   // the installer's own file version
+        Assert.Contains("<Version>1.5.1</Version>", ReadRepoFile("TableForge", "TableForge.csproj"));
+        Assert.Contains("VersionInfoVersion=1.5.1", ReadRepoFile("installer", "TableForge.iss"));   // the installer's own file version
     }
 
     [Fact]
@@ -360,7 +360,7 @@ public class ReleaseTests
         Assert.Contains("\"tf\" + System.Convert.ToHexString(SHA256.HashData(", ReadRepoFile("TableForge", "Export", "Pum", "PumTableConverter.cs"));
         Assert.Contains("Encoding.UTF8.GetBytes(\"TableForge dddice account token v1\")", ReadRepoFile("TableForge", "Dice", "DddiceAccountStore.cs"));   // saved dddice logins
         Assert.Contains("private const string Host = \"tableforge-app.local\";", ReadRepoFile("TableForge", "Dice", "WebViewDddiceRoller.cs"));       // the dice page's origin
-        foreach (var name in new[] { "dice-provider.txt", "dddice-account.json", "streaming-overlay.json", "streaming-overlay.html" })
+        foreach (var name in new[] { "dice-provider.txt", "dddice-account.json", "dddice-rooms.json", "streaming-overlay.json", "streaming-overlay.html" })
             Assert.Contains($"\"{name}\"", string.Join("\n", Directory.GetFiles(Path.Combine(RepoRoot(), "TableForge"), "*.cs", SearchOption.AllDirectories)
                 .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")).Select(File.ReadAllText)));
     }
@@ -386,7 +386,7 @@ public class ReleaseTests
         Assert.Contains("dotnet publish TableForge\\TableForge.csproj -p:PublishProfile=win-x64-folder", readme);
         Assert.Contains("publish\\win-x64", readme);
         Assert.Contains("%LOCALAPPDATA%\\TableForge\\tableforge.db", readme);
-        Assert.Contains("Version 1.5.0 ·", readme);
+        Assert.Contains("Version 1.5.1 ·", readme);
         Assert.DoesNotContain("(release candidate)", readme);
     }
 }

@@ -27,7 +27,7 @@ public class PublicReleaseTests
         Assert.Equal("Gidubba - RPG Rollable Tables", assembly.GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description);
         Assert.Equal("RPG Frequencies", assembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company);
         Assert.Equal("Copyright (c) 2026 RPG Frequencies", assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright);
-        Assert.Equal("1.5.0", AppInfo.Version);
+        Assert.Equal("1.5.1", AppInfo.Version);
         Assert.Equal(("Gidubba", "Gidubba — RPG Rollable Tables"), (AppInfo.Name, AppInfo.Title));
         Assert.Equal("TableForge", assembly.GetName().Name);                                         // TableForge.exe: installs, pins and shortcuts keep working
         Assert.Contains("<AssemblyName>TableForge</AssemblyName>", Read("TableForge", "TableForge.csproj"));
@@ -125,8 +125,22 @@ public class PublicReleaseTests
     [Fact]
     public void The_release_notes_and_testing_checklist_exist()
     {
-        var notes = Read("docs", "release-notes", "1.5.0.md");
-        Assert.Equal("# Gidubba 1.5.0", notes.Split('\n')[0].TrimEnd('\r'));                  // 1.5.0, not an rc
+        var notes = Read("docs", "release-notes", "1.5.1.md");
+        Assert.Equal("# Gidubba 1.5.1", notes.Split('\n')[0].TrimEnd('\r'));                  // 1.5.1, not an rc
+        Assert.DoesNotContain("release candidate", notes, StringComparison.OrdinalIgnoreCase);
+        foreach (var heading in new[] { "## Highlights", "## Installation", "## Known Issues", "## Data and Upgrades", "## Feedback" })
+            Assert.Contains(heading, notes);
+        Assert.Contains("**Disconnect still removes your dddice login.**", notes);
+        Assert.Contains("dddice-rooms.json", notes);
+        Assert.Contains("**The data format does not change** (still database schema version 12", notes);
+        Assert.Contains("**Gidubba 1.5.0 can still open data that 1.5.1 has used.**", notes);
+        Assert.Contains("Gidubba-1.5.1-Setup.exe", notes);
+        Assert.Contains("Gidubba-1.5.1-win-x64.zip", notes);
+        Assert.Contains("(https://github.com/Gwydione/Gidubba/issues)", notes);
+        Assert.Contains("**Never post dddice tokens or account credentials.**", notes);
+
+        notes = Read("docs", "release-notes", "1.5.0.md");                                     // the 1.5.0 notes stay as released
+        Assert.Equal("# Gidubba 1.5.0", notes.Split('\n')[0].TrimEnd('\r'));
         Assert.DoesNotContain("release candidate", notes, StringComparison.OrdinalIgnoreCase);
         foreach (var heading in new[] { "## Highlights", "## Installation", "## What's Included", "## Known Issues", "## Data and Upgrades", "## Feedback" })
             Assert.Contains(heading, notes);
@@ -210,12 +224,14 @@ public class PublicReleaseTests
         Assert.StartsWith("# TableForge 1.0.0", Read("docs", "release-notes", "1.0.0.md"));       // earlier notes stay
 
         var changelog = Read("CHANGELOG.md");
-        var newest = changelog.IndexOf("## 1.5.0", StringComparison.Ordinal);
-        Assert.InRange(newest, 0, changelog.IndexOf("## 1.4.0", StringComparison.Ordinal));        // newest first
+        var newest = changelog.IndexOf("## 1.5.1", StringComparison.Ordinal);
+        Assert.InRange(newest, 0, changelog.IndexOf("## 1.5.0", StringComparison.Ordinal));        // newest first
+        Assert.InRange(changelog.IndexOf("## 1.5.0", StringComparison.Ordinal), 0, changelog.IndexOf("## 1.4.0", StringComparison.Ordinal));
         Assert.InRange(changelog.IndexOf("## 1.4.0", StringComparison.Ordinal), 0, changelog.IndexOf("## 1.3.0", StringComparison.Ordinal));
         Assert.InRange(changelog.IndexOf("## 1.3.0", StringComparison.Ordinal), 0, changelog.IndexOf("## 1.2.0", StringComparison.Ordinal));
         Assert.InRange(changelog.IndexOf("## 1.2.0", StringComparison.Ordinal), 0, changelog.IndexOf("## 1.1.0", StringComparison.Ordinal));
         Assert.InRange(changelog.IndexOf("## 1.1.0", StringComparison.Ordinal), 0, changelog.IndexOf("## 1.0.0", StringComparison.Ordinal));
+        Assert.Contains("docs/release-notes/1.5.1.md", changelog);
         Assert.Contains("docs/release-notes/1.5.0.md", changelog);
         Assert.Contains("docs/release-notes/1.4.0.md", changelog);
         Assert.Contains("docs/release-notes/1.3.0.md", changelog);

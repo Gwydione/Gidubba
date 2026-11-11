@@ -2,7 +2,7 @@
 
 **Gidubba turns random tables from RPG books and PDFs into fast, searchable, rollable digital tables.**
 
-Version 1.5.0 · Windows 10/11 (64-bit) · by RPG Frequencies
+Version 1.5.1 · Windows 10/11 (64-bit) · by RPG Frequencies
 
 **Formerly TableForge.** Gidubba is the new name for TableForge, from version 1.2.0. Only the name and icon changed:
 installing Gidubba over TableForge upgrades it in place and keeps all your tables and settings. Some technical names
@@ -186,7 +186,10 @@ up your data, close Gidubba and copy the whole `TableForge` folder somewhere saf
 Beside it Gidubba keeps `dice-provider.txt` (one word, `builtin` or `dddice`: your dice choice) and, only if you ever choose
 dddice, a `WebView2` folder (the browser profile that draws the dice; it holds no tables). If you connect a dddice account there is
 also `dddice-account.json`: the connection's token, encrypted with Windows (DPAPI, readable only by your Windows user), plus your
-account's display name, chosen theme and dddice room. Disconnect deletes it. Deleting it by hand just returns dddice to guest.
+account's display name, chosen theme, dddice room and dddice account id. Disconnect deletes it. Deleting it by hand just returns
+dddice to guest. Once an account has used dddice there is also `dddice-rooms.json`: for each dddice account (by its dddice account
+id), the room Gidubba uses for it. It holds no token, password or other credential, and Disconnect keeps it, so connecting the
+same account again reuses its room instead of creating another. Deleting it by hand only means a new room may be created.
 Once you use the [Streaming Overlay](#streaming-overlay-obs) there are also `streaming-overlay.json` (its settings) and
 `streaming-overlay.html` (the page OBS loads). Once you change **Auto-follow linked tables** there is also
 `auto-follow.txt` (one word, `on` or `off`).
@@ -676,6 +679,11 @@ Reconnect in Account…" and keeps it until you reconnect or disconnect; if dddi
 everything. If your chosen theme leaves your Dice Box or can no longer be used, Gidubba says so and asks you to choose
 another. It never switches to the guest dice or another theme by itself; **Use Built-in Dice** is always there.
 **Disconnect** forgets the connection on this computer only (your dddice account is not changed) and dddice rolls as a guest again.
+It deletes the login (the token) and the theme choice, but keeps the account's room id and dddice account id, which are not
+secret, in `dddice-rooms.json`: connecting the same account again, even after a restart, reuses its room. A room is only ever
+reused for the account it belongs to, and only after dddice confirms it can still be used; a different account gets its own. If
+dddice will not create a room (for example "dddice would not create a room for Gidubba (402)", which may mean the account has
+reached its room limit), Gidubba says so and does not try again until you press **Try again**.
 
 Not included yet: custom dice, other dice apps. To show dddice's dice in OBS, see [Streaming Overlay](#streaming-overlay-obs).
 
