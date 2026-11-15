@@ -228,6 +228,30 @@ Use a table whose results link to a second table, which links to a third.
 - [ ] Delete Table, Delete Folder, Delete Collection and Reset Used Results ask with a title naming the action; **No**
       changes nothing.
 
+## Complete Result (1.6.0)
+
+Use a table whose result links to a second table, which links to a third (Built-in dice unless a step says dddice).
+
+- [ ] Roll an ordinary table with no links: no panel appears, and the Roll screen looks exactly as in 1.5.1.
+- [ ] Roll the first table and **Open** its link: a **Complete Result** panel appears at the top with the first result,
+      a small caption ("Table · roll") and "→ <second table> — not rolled yet". Roll: the pending line is replaced by the
+      second result. Open and roll the third: three parts, in order. The trail below is unchanged.
+- [ ] Roll the third table again: its part changes in place; the earlier roll is still in the trail.
+- [ ] **Roll 3 Times** on one table: the panel shows the three results, captioned "roll 1", "roll 2", "roll 3".
+- [ ] A result with inline dice (`gain 1d4 Armor`): **Roll d4**, then follow its link: the trail keeps "Resolved: …" (no
+      button any more) and the panel shows the rolled value. An expression never rolled stays as written.
+- [ ] **Copy Complete Result**, paste into Notepad: the result text only, one per line, no captions or "→" notes. "Complete
+      result copied." shows beside the button; the Export message under the table is not affected.
+- [ ] With **Auto-follow linked tables** on, Roll the first table: the panel fills in as each table is rolled. With
+      **dddice**, each part appears only when its dice settle; **Stop** mid-chain leaves "not rolled (auto-follow stopped)".
+- [ ] Auto-follow to a Manual-selection table: "choose a result"; enter one: the chain carries on and the caption says "(entered)".
+- [ ] **← Back to …**: the panel heading says "previous roll" and keeps the chain; the next roll starts a new one.
+- [ ] Click the panel heading: it closes to one line and the trail moves up; it stays closed for the next roll; opening
+      another table starts it open again. With the heading focused, **Page Up** / **Page Down** / **Home** / **End**
+      scroll a long panel; **Tab** goes from the heading to **Copy Complete Result**, then on to the trail.
+- [ ] At 1000×640 with Recent rolls open and a long chain: the panel is small and scrolls; **Roll** stays in view.
+- [ ] Recent rolls lists each roll separately as before, and the Streaming Overlay shows only the latest roll's result.
+
 ## dddice
 
 - [ ] Choose **dddice** (guest): the dice panel prepares and a roll shows 3D dice and the right result.
@@ -409,6 +433,8 @@ Use a copy of real data with the five Fourth Kingdom selectors marked Manual-sel
       link, Manual-selection mark and setting is exactly as before, no row is Unique and Recent rolls are kept. 1.3.0 then
       refuses the data (it was made by a newer version) and changes nothing; to go back, close Gidubba and restore the
       backup copy in place of `tableforge.db` (changes made since the upgrade are lost).
+- [ ] From Gidubba 1.5.1 to 1.6.0: no data-format change, so no new backup copy appears, and every file in the data
+      folder is unchanged. Settings → Apps still lists one **Gidubba** entry, now 1.6.0. 1.5.1 can still open the data.
 - [ ] From Gidubba 1.5.0 to 1.5.1: no data-format change, so no new backup copy appears. A connected dddice account
       stays connected with its theme, and keeps using the same room (no "dddice room changed" note). 1.5.0 can still
       open the data and still uses the dddice account afterwards.

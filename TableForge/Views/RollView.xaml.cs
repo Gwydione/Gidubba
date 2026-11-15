@@ -15,6 +15,59 @@ public partial class RollView : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        SizeChanged += (_, _) => UpdateCompleteResultHeight();
+        RollControls.SizeChanged += (_, _) => UpdateCompleteResultHeight();
+    }
+
+    // ---- Complete Result panel: bounded, so the trail and the Roll controls always keep their room ----------------------
+
+    /// <summary>The panel's body takes at most this share of the Roll screen's height…</summary>
+    public const double CompleteResultShare = 0.30;
+
+    /// <summary>…and never more than this, however tall the window.</summary>
+    public const double CompleteResultMaxBody = 240;
+
+    /// <summary>The smallest body worth showing (about one caption and one line of result). Below that the panel still opens,
+    /// but scrolls within this height.</summary>
+    public const double CompleteResultMinBody = 44;
+
+    /// <summary>Room the trail keeps beyond the Roll controls themselves, so they are never the only thing in view.</summary>
+    public const double TrailReserve = 48;
+
+    /// <summary>
+    /// Keyboard scrolling for the Complete Result, without making its body another Tab stop: while its toggle or Copy Complete
+    /// Result has focus, Page Up / Page Down scroll the body a page, Home / End go to its start / end. Neither control uses
+    /// these keys itself. Nothing happens while the panel is collapsed.
+    /// </summary>
+    private void OnCompleteResultKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Handled || !CompleteResultScroller.IsVisible) return;
+        switch (e.Key)
+        {
+            case Key.PageDown: CompleteResultScroller.PageDown(); break;
+            case Key.PageUp: CompleteResultScroller.PageUp(); break;
+            case Key.Home: CompleteResultScroller.ScrollToTop(); break;
+            case Key.End: CompleteResultScroller.ScrollToEnd(); break;
+            default: return;
+        }
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// Bounds the Complete Result's body: <see cref="CompleteResultShare"/> of the screen, at most <see cref="CompleteResultMaxBody"/>,
+    /// and — in a small window, or with Recent Rolls open — only what is left once the trail has room for the whole Roll
+    /// controls block plus <see cref="TrailReserve"/>. The body shrinks first; the trail is never squeezed for it.
+    /// </summary>
+    private void UpdateCompleteResultHeight()
+    {
+        var available = ActualHeight;
+        if (available <= 0) return;
+        var header = CompleteResultPanel.Padding.Top + CompleteResultPanel.Padding.Bottom + CompleteResultPanel.BorderThickness.Bottom
+            + Math.Max(CompleteResultExpander.ActualHeight - CompleteResultScroller.ActualHeight - CompleteResultScroller.Margin.Top, 30)
+            + CompleteResultScroller.Margin.Top;
+        var trailNeeds = RollControls.ActualHeight + RollControls.Margin.Top + TrailContent.Margin.Top + TrailContent.Margin.Bottom + TrailReserve;
+        var body = Math.Min(Math.Min(available * CompleteResultShare, CompleteResultMaxBody), available - header - trailNeeds);
+        CompleteResultScroller.MaxHeight = Math.Max(CompleteResultMinBody, Math.Floor(body));
     }
 
     private int _stepCount = 1;
@@ -67,6 +120,7 @@ public partial class RollView : UserControl
 
         // This view is reused when another table is opened, so start that table at its top, ready to roll.
         TrailScroller.ScrollToTop();
+        CompleteResultScroller.ScrollToTop();
         _stepCount = (e.NewValue as RollViewModel)?.Steps.Count ?? 1;
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => RollButton.Focus());
     }
@@ -74,6 +128,9 @@ public partial class RollView : UserControl
     /// <summary>A new roll or a followed link changes <see cref="RollViewModel.Results"/>; bring the new content into view.</summary>
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // The Complete Result changes before Results, so its newest part is brought into view first, then the trail scrolls.
+        if (e.PropertyName == nameof(RollViewModel.CompleteResult))
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => CompleteResultScroller.ScrollToEnd());
         if (e.PropertyName == nameof(RollViewModel.Results))
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, ScrollToLatest); // after the new visuals have been laid out
     }

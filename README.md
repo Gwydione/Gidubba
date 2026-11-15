@@ -2,7 +2,7 @@
 
 **Gidubba turns random tables from RPG books and PDFs into fast, searchable, rollable digital tables.**
 
-Version 1.5.1 · Windows 10/11 (64-bit) · by RPG Frequencies
+Version 1.6.0 · Windows 10/11 (64-bit) · by RPG Frequencies
 
 **Formerly TableForge.** Gidubba is the new name for TableForge, from version 1.2.0. Only the name and icon changed:
 installing Gidubba over TableForge upgrades it in place and keeps all your tables and settings. Some technical names
@@ -22,6 +22,7 @@ Gidubba can also:
 - roll with fast **Built-in dice**, or optionally with **dddice** 3D visual dice, including themes from your own
   dddice account;
 - follow **linked tables** ("Scavenging → Scavenged Items") and roll **inline dice** inside results ("gain 1d4 Armor");
+- read a whole chain of linked rolls at once in the **Complete Result** panel, and copy it as plain text;
 - optionally **auto-follow linked tables**, rolling down a chain of linked tables by itself, and stopping to let you
   choose on **Manual-selection tables** such as a "current depth" selector;
 - make words in a result **bold** or *italic* on the Review screen, shown that way when it is rolled;
@@ -109,6 +110,8 @@ only the current result with programs on this computer (address `127.0.0.1`); it
   reach, have not been checked in PUM.
 - **Auto-follow** follows one link per result and at most 8 tables in a chain, and never chooses on a Manual-selection
   table. Every table starts as an ordinary table: mark your selector tables yourself.
+- **Complete Result** lives on the Roll screen only: it is not saved, not in Recent rolls and not on the Streaming
+  Overlay. Inline dice in results that Auto-follow rolled past cannot be rolled any more, so they stay as written there.
 - **Unique Results:** which results have been used is kept on this computer only, never in exported files, and Reset
   works on a whole table. dddice tries 10 throws per result. Exports to other programs leave out Unique.
 - **Copy for Sojour** has been tested only by pasting with **Ctrl+V** into a Sojour Lookup Table; it copies one result
@@ -151,7 +154,8 @@ components are listed in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
    Review screen — notes beside rows say where the parser was unsure — then **Save Table**.
 3. Choose a table to open it, then **Roll** (or type a number and press **Enter** to resolve a specific roll).
 4. If a result links to another table, a button appears; following it never rolls automatically, unless you turn on
-   [Auto-follow linked tables](#auto-follow-linked-tables).
+   [Auto-follow linked tables](#auto-follow-linked-tables). Once a roll leads on to other tables (or one Roll makes
+   several results), the [Complete Result](#complete-result) panel at the top of the Roll screen puts them together.
 5. After following one or more links, **← Back to …** (just above **Roll**) makes the table you started from current
    again, as a new step at the bottom; every earlier result stays. It never happens by itself. The table list always
    selects the table the Roll screen is on, so **Edit table** and **Delete table** act on that table (when the list's
@@ -251,6 +255,28 @@ spaces or blank lines at the very start and end are removed.
 While rolling, the description appears under the table's dice. A table with no description shows nothing there. A
 followed table shows its own description in its own step. The description is only a note: it never changes how the table
 rolls or resolves, and it does not appear in the table list or Recent rolls.
+
+## Complete Result
+
+When one roll leads to others (you follow a link, Auto-follow rolls down a chain, or one **Roll** makes several results),
+the **Complete Result** panel at the top of the Roll screen puts the results together in the order they were resolved,
+so the whole outcome reads in one place. Every individual roll stays below it, exactly as before.
+
+- Each part is the result's own text, as written: inline dice you rolled show their value, dice not rolled stay as written.
+  Gidubba never writes new text. A small caption above each part says which table and roll it came from, such as
+  "Occupants · 11 (resolved as 10)" for a clamped roll or "Area Type · 14 (entered)" for a result you typed.
+- Rolling a linked table again replaces that table's part, in the same place; the earlier roll stays in the trail below.
+- A linked table not rolled yet ends the panel with "→ Loot — not rolled yet" ("choose a result" for a Manual-selection
+  table). Links the last result did not follow are noted under it.
+- An ordinary single roll shows no panel, since it would only repeat the result right below.
+- **Copy Complete Result** copies the result text only, one result per line, without captions or notes. A named result set
+  reads "Name: text", and a "No entry covers N." message is copied with its table's name.
+- **← Back to …** keeps the previous Complete Result (headed "previous roll") until your next roll starts a new one.
+- The panel's height is limited, and it scrolls on its own. Click its heading to close or open it; it stays as you left it
+  while you are on that Roll screen. With its heading or **Copy Complete Result** focused, **Page Up** and **Page Down**
+  scroll it, and **Home** and **End** go to its start and end.
+- It lives on the Roll screen only: nothing is saved, Recent rolls still lists each roll, and the Streaming Overlay still
+  shows the latest result only.
 
 ## Auto-follow linked tables
 
@@ -628,8 +654,10 @@ at a second, more permissive dice grammar, only the same one a table's own dice 
 
 These rolls are auxiliary: they never appear in Recent Rolls, ignore the Modifier box (and leave it as it is), and never
 re-resolve the table or follow a linked result — a result that both contains dice text and links to another table offers
-both actions independently. A roll that fails or is cancelled leaves the previous resolved line unchanged. Inline results
-are transient: rolling the parent table again, following a link, or opening another table clears them; nothing is saved.
+both actions independently. A roll that fails or is cancelled leaves the previous resolved line unchanged. Only the
+current result can be rolled: once it is superseded (by rolling the table again or following a link) its buttons go, but
+its **Resolved:** line stays with the value it was rolled to (since 1.6.0), and the [Complete Result](#complete-result)
+uses that value. Opening another table clears them; nothing is saved.
 
 ## Dice: Built-in or dddice
 

@@ -485,7 +485,7 @@ public class InlineDiceSessionTests
     }
 
     [Fact]
-    public void Rerolling_the_parent_clears_the_resolved_line()
+    public void Rerolling_the_parent_keeps_the_superseded_resolved_line_without_its_buttons()
     {
         var dice = new FixedDice(1);
         var session = new RollViewModel(InlineFixtures.TableWithText("You gain +1d4 Armor"), dice);
@@ -498,9 +498,11 @@ public class InlineDiceSessionTests
         dice.Value = 2;
         session.RollCommand.Execute(null);
 
-        Assert.False(first.ShowResolved);
-        Assert.False(first.HasResolved); // cleared, not merely hidden
-        Assert.Equal("You gain +1d4 Armor", first.ResolvedText);
+        Assert.True(first.ShowResolved); // kept as history (1.6), never rolled again
+        Assert.True(first.HasResolved);
+        Assert.Equal("You gain +3 Armor", first.ResolvedText);
+        Assert.Equal("You gain +1d4 Armor", first.Text);
+        Assert.False(first.ShowInlineActions);
         var second = OnlyLine(session);
         Assert.False(second.ShowResolved);
         Assert.Equal("You gain +1d4 Armor", second.ResolvedText);
@@ -526,7 +528,7 @@ public class InlineDiceSessionTests
     }
 
     [Fact]
-    public void Following_a_link_clears_the_parents_resolved_line()
+    public void Following_a_link_keeps_the_parents_resolved_line_without_its_buttons()
     {
         using var temp = new TempDatabase();
         using var db = temp.Open();
@@ -542,10 +544,12 @@ public class InlineDiceSessionTests
 
         line.FollowCommand!.Execute(null);
 
-        Assert.False(line.ShowResolved);
-        Assert.False(line.HasResolved);
-        Assert.Equal("You gain +1d4 Armor", line.ResolvedText);
+        Assert.True(line.ShowResolved); // kept (1.6): the parent still reads as it was resolved
+        Assert.True(line.HasResolved);
+        Assert.Equal("You gain +3 Armor", line.ResolvedText);
         Assert.Equal("You gain +1d4 Armor", line.Text);
+        Assert.False(line.ShowInlineActions);
+        Assert.False(line.InlineActions[0].RollCommand!.CanExecute(null));
     }
 
     [Fact]
@@ -627,9 +631,10 @@ public class InlineDiceSessionTests
         Assert.Single(session.Steps);
         Assert.True(line.ShowFollow);
 
-        line.FollowCommand!.Execute(null); // following the link is a separate action; it supersedes (and clears) the inline result
+        line.FollowCommand!.Execute(null); // following the link is a separate action; it supersedes the inline result (kept, not offered)
         Assert.Equal(2, session.Steps.Count);
-        Assert.False(action.HasResult);
+        Assert.True(action.HasResult);
+        Assert.False(line.ShowInlineActions);
     }
 
     [Fact]
@@ -868,8 +873,8 @@ public class InlineDiceViewTests
             Assert.Contains(ui.Texts(), t => t.Text == "You gain +1d4 Armor" && t.FontSize == 26); // source unchanged
 
             ui.Dice.Value = 5;
-            ui.Click("Roll"); // a new parent result clears it
-            Assert.Empty(ResolvedLines(ui));
+            ui.Click("Roll"); // a new parent result: the earlier one keeps its resolved line (1.6); the new one is unrolled
+            Assert.Equal(["Resolved: You gain +1 Armor"], ResolvedLines(ui));
             Assert.True(ui.HasVisibleButton("Roll d4"));
         });
     }

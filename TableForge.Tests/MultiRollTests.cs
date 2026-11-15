@@ -308,9 +308,10 @@ public class MultiRollTests
         Assert.Equal("You gain +1d4 Armor", second.ResolvedText);
 
         session.RollCount = 1;
-        session.RollCommand.Execute(null);                                                    // a new action: earlier inline results clear
-        Assert.False(first.ShowResolved);
-        Assert.False(first.InlineActions[0].HasResult);
+        session.RollCommand.Execute(null);                                                    // a new action: earlier inline results are kept (1.6)
+        Assert.True(first.ShowResolved);
+        Assert.Equal(3, first.InlineActions[0].LatestValue);
+        Assert.False(first.ShowInlineActions);                                                // but only the current result can be rolled
     }
 
     [Fact]

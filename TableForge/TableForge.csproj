@@ -7,8 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
 
-    <!-- Gidubba 1.5.1: maintenance release, a connected dddice account reuses its room after Disconnect and Connect. Version drives the file version, the product version and the number shown in the app. -->
-    <Version>1.5.1</Version>
+    <!-- Gidubba 1.6.0: Complete Roll Results, a linked chain's results assembled in one panel on the Roll screen. Version drives the file version, the product version and the number shown in the app. -->
+    <Version>1.6.0</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <!-- The public name. Product and AssemblyTitle are what Windows shows (file properties, Task Manager); the exe stays
          TableForge.exe, so existing installs, shortcuts and pins keep working. -->

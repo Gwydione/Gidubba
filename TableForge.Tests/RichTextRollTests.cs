@@ -148,7 +148,7 @@ public class RichTextRollTests
     }
 
     [Fact]
-    public void The_resolved_line_updates_and_clears_like_the_resolved_text()
+    public void The_resolved_line_updates_and_is_kept_like_the_resolved_text()
     {
         var dice = new FixedDice(1);
         var session = new RollViewModel(One("**+1d4** Armor"), dice);
@@ -160,9 +160,10 @@ public class RichTextRollTests
         line.InlineActions[0].RollCommand!.Execute(null);
         Assert.Contains(nameof(ResultLineViewModel.ResolvedSegments), raised);
 
-        session.RollCommand.Execute(null); // a new roll supersedes it
-        Assert.False(line.ShowResolved);
-        Assert.Equal([("Resolved: ", TextStyle.None), ("+1d4", B), (" Armor", TextStyle.None)], Parts(line.ResolvedSegments));
+        session.RollCommand.Execute(null); // a new roll supersedes it: the resolved line stays, formatting and all (1.6)
+        Assert.True(line.ShowResolved);
+        Assert.Equal([("Resolved: ", TextStyle.None), ("+1", B), (" Armor", TextStyle.None)], Parts(line.ResolvedSegments));
+        Assert.False(line.ShowInlineActions);
     }
 
     // ---- linked and aligned -----------------------------------------------------------------------------------------

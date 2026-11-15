@@ -65,7 +65,96 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer x:Name="TrailScroller" VerticalScrollBarVisibility="Auto">
+    <!-- Gidubba 1.6: the Complete Result panel sits above the trail and never scrolls with it, so the assembled outcome stays in
+         view while the trail below scrolls to each new roll. -->
+    <Grid x:Name="RollLayout">
+    <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <!-- The newest chain of rolls as one readable block (see CompleteResultBuilder). Shown only when there is something to
+         assemble (a linked table, or several results of one action); a plain roll looks exactly as it always did. Its body has
+         its own bounded scroll (see UpdateCompleteResultHeight), and collapsed it is only its header. -->
+    <!-- Its body is not a Tab stop (Tab goes toggle → Copy → trail); with either of those focused, Page Up / Page Down / Home /
+         End scroll it (see OnCompleteResultKeyDown). -->
+    <Border x:Name="CompleteResultPanel" Grid.Row="0" Background="#F7F8FA" BorderBrush="#DDD" BorderThickness="0,0,0,1" Padding="12,2,16,6"
+            Visibility="{Binding CompleteResult.IsVisible, Converter={StaticResource BoolToVis}}" KeyDown="OnCompleteResultKeyDown">
+        <Grid>
+            <Expander x:Name="CompleteResultExpander" IsExpanded="{Binding IsCompleteResultExpanded}"
+                      AutomationProperties.Name="{Binding CompleteResultHeading}"
+                      AutomationProperties.HelpText="Page Up and Page Down scroll the complete result; Home and End go to its start and end.">
+                <Expander.Header>
+                    <TextBlock x:Name="CompleteResultHeadingText" Text="{Binding CompleteResultHeading}" FontWeight="SemiBold" Margin="4,4,0,4" />
+                </Expander.Header>
+                <ScrollViewer x:Name="CompleteResultScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Margin="0,2,0,0" Focusable="False" AutomationProperties.Name="Complete result text">
+                    <StackPanel Margin="22,0,4,0">
+                        <ItemsControl x:Name="CompleteResultPieces" ItemsSource="{Binding CompleteResult.Pieces}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,6">
+                                        <!-- "Occupants · 11 (resolved as 10)": which table and roll this part came from. Shown, never copied. -->
+                                        <TextBlock x:Name="CompleteResultCaption" Text="{Binding Caption}" FontSize="12" Foreground="#666" TextWrapping="Wrap" />
+                                        <ItemsControl ItemsSource="{Binding Lines}" Focusable="False">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel>
+                                                        <TextBlock x:Name="CompleteResultLineText" views:FormattedText.Segments="{Binding ShownSegments}"
+                                                                   FontSize="18" TextWrapping="Wrap">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsProblem}" Value="True">
+                                                                            <Setter Property="Foreground" Value="{StaticResource ProblemText}" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <!-- A link this last result did not, or could not, follow. Shown, never copied. -->
+                                                        <TextBlock x:Name="CompleteResultNote" Text="{Binding Note}" FontSize="12" TextWrapping="Wrap"
+                                                                   Visibility="{Binding HasNote, Converter={StaticResource BoolToVis}}">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="#777" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsWarningNote}" Value="True">
+                                                                            <Setter Property="Foreground" Value="{StaticResource WarningText}" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <!-- The linked table the chain is waiting on ("→ Loot — not rolled yet"). Shown, never copied. -->
+                        <TextBlock x:Name="CompleteResultPendingText" Text="{Binding CompleteResultPendingText}" FontStyle="Italic" Foreground="#777"
+                                   TextWrapping="Wrap" Margin="0,0,0,4"
+                                   Visibility="{Binding HasCompleteResultPending, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Expander>
+            <!-- Beside the header, outside the Expander's toggle, so it is its own button (and its own Tab stop). -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,0,0">
+                <TextBlock x:Name="CompleteResultCopyMessageText" Text="{Binding CompleteResultCopyMessage}" Foreground="#2E6B3A"
+                           VerticalAlignment="Center" Margin="0,0,8,0" MaxWidth="320" TextTrimming="CharacterEllipsis"
+                           ToolTip="{Binding CompleteResultCopyMessage}"
+                           Visibility="{Binding HasCompleteResultCopyMessage, Converter={StaticResource BoolToVis}}" />
+                <Button x:Name="CopyCompleteResultButton" Content="Copy Complete Result" Padding="10,2" VerticalAlignment="Center"
+                        Command="{Binding CopyCompleteResultCommand}"
+                        ToolTip="Copy the result text above, one result per line (without the table names and rolls)" />
+            </StackPanel>
+        </Grid>
+    </Border>
+
+    <ScrollViewer x:Name="TrailScroller" Grid.Row="1" VerticalScrollBarVisibility="Auto">
         <StackPanel x:Name="TrailContent" Margin="16">
 
             <!-- The trail: every table rolled so far in this linked sequence, oldest first. -->
@@ -457,4 +546,5 @@
             </ItemsControl>
         </StackPanel>
     </ScrollViewer>
+    </Grid>
 </UserControl>

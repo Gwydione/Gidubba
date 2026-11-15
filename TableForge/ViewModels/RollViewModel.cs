@@ -4,6 +4,7 @@ using System.Windows.Input;
 using TableForge.Dice;
 using TableForge.Domain;
 using TableForge.Import;
+using TableForge.Results;
 using TableForge.Streaming;
 
 namespace TableForge.ViewModels;
@@ -191,20 +192,22 @@ public sealed class ResultLineViewModel(string heading, string range, string tex
     public string ResolvedText => InlineDiceDetector.Substitute(Text, InlineMatches,
         dice => InlineActions.FirstOrDefault(a => a.Expression == dice)?.LatestResult);
 
-    /// <summary>The resolved copy is shown, below the source text, only for the current result once something has been rolled.</summary>
-    public bool ShowResolved => HasResolved && IsActive;
+    /// <summary>
+    /// The resolved copy is shown, below the source text, once something has been rolled — and it stays, as history, after the
+    /// result is superseded (a new roll, a followed link). Only the latest result can be rolled again (see <see cref="ShowInlineActions"/>).
+    /// </summary>
+    public bool ShowResolved => HasResolved;
 
-    /// <summary>Only the latest roll on the current table offers its links; once the trail moves on they become plain notes.</summary>
+    /// <summary>
+    /// Only the latest roll on the current table offers its links and inline rolls; once the trail moves on they become plain
+    /// notes. Inline values already rolled are kept (Gidubba 1.6): a superseded result still reads as it was resolved.
+    /// </summary>
     public bool IsActive
     {
         get => _isActive;
         internal set
         {
             if (!Set(ref _isActive, value)) return;
-            // Inline results belong to the current result only: once it is superseded (a new roll, a followed link) they are cleared.
-            if (!value)
-                foreach (var action in InlineActions)
-                    action.SetResult(null);
             Raise(nameof(ShowFollow));
             Raise(nameof(ShowLinkedNote));
             Raise(nameof(ShowInlineActions));
@@ -248,6 +251,23 @@ public sealed record RollOutcomeViewModel(string Display, IReadOnlyList<ResultLi
 
     /// <summary>What the overlay heads this result with: the table's name and the roll exactly as shown ("Rolled 14" → "14").</summary>
     internal (string TableName, string RollValue) OverlayHeader { get; set; }
+
+    // ---- For the Complete Result (see CompleteResultBuilder) ----
+
+    /// <summary>Which of the person's actions on this screen made this result; every result of one multi-roll action shares it.</summary>
+    public int ActionNumber { get; init; }
+
+    /// <summary>"Roll 2" is 2; 0 for an ordinary single roll.</summary>
+    public int BatchPosition { get; init; }
+
+    /// <summary>The roll exactly as shown ("14", "00", "35"), never the clamped lookup value.</summary>
+    public string RollText { get; init; } = "";
+
+    /// <summary>The value the table was looked up with when Clamp changed the roll; null otherwise.</summary>
+    public int? ResolvedAs { get; init; }
+
+    /// <summary>True for a result the person typed in rather than rolled.</summary>
+    public bool Entered { get; init; }
 }
 
 /// <summary>A table in the linked-roll trail and every roll made on it. Repeat rolls stay in the same step.</summary>
@@ -269,6 +289,9 @@ public sealed class RollStepViewModel(RollableTable table, bool isFirst) : Obser
 
     /// <summary>A step added by Back to the original table (see <see cref="RollViewModel.ReturnToOriginalCommand"/>): it says so.</summary>
     public bool IsReturn { get; init; }
+
+    /// <summary>For a step opened by a link (Open or auto-follow), the previous step's result line it was followed from; null otherwise.</summary>
+    public ResultLineViewModel? OpenedFrom { get; init; }
 
     /// <summary>A Manual-selection table (see <see cref="RollableTable.IsManualSelection"/>): the step says its result is meant to be chosen.</summary>
     public bool IsManualSelection => Table.IsManualSelection;
@@ -367,6 +390,10 @@ public sealed class RollViewModel : ObservableObject
     private readonly Func<string, string, bool> _confirm;
     private (int Used, int Unique) _usedCounts;
     private bool _usedUnreadable;
+    private int _actionNumber;
+    private CompleteResult _completeResult = CompleteResult.None;
+    private string _completeResultCopyMessage = "";
+    private bool _isCompleteResultExpanded = true;
 
     /// <param name="tableUsed">Called when a table becomes the current rollable table by being followed to, or by Back to the
     /// original table (recent tables, and the table selected in the list).</param>
@@ -420,6 +447,117 @@ public sealed class RollViewModel : ObservableObject
         SaveTablesPlusJsonCommand = new RelayCommand(SaveTablesPlusJson, () => Current.Table.ResultSets.Count > 0);
         _exportPum = exportPum;
         SavePumBundleCommand = new RelayCommand(SavePumBundle, () => _exportPum is not null && Current.Table.ResultSets.Count > 0);
+        CopyCompleteResultCommand = new RelayCommand(CopyCompleteResult, () => CompleteResult.IsVisible);
+    }
+
+    // ---- Complete Result -----------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// The newest chain of rolls assembled into one readable outcome (see <see cref="CompleteResultBuilder"/>): rebuilt from the
+    /// trail whenever a result is shown, a link is followed, an inline value is rolled or a roll starts or ends. Display and
+    /// copy only — it is never saved, published to the overlay or recorded in Recent Rolls.
+    /// </summary>
+    public CompleteResult CompleteResult => _completeResult;
+
+    /// <summary>"Complete Result", or "Complete Result · previous roll" after Back to the original table until the next result.</summary>
+    public string CompleteResultHeading => CompleteResult.IsPrevious ? "Complete Result · previous roll" : "Complete Result";
+
+    /// <summary>The linked table the chain is waiting on ("→ Loot — not rolled yet"); "" when it is waiting on nothing.</summary>
+    public string CompleteResultPendingText => CompleteResult.Pending?.Text ?? "";
+    public bool HasCompleteResultPending => CompleteResult.HasPending;
+
+    /// <summary>Whether the Complete Result panel is open. Starts open; kept for this Roll screen only, never saved.</summary>
+    public bool IsCompleteResultExpanded { get => _isCompleteResultExpanded; set => Set(ref _isCompleteResultExpanded, value); }
+
+    /// <summary>Copy Complete Result: the result text only (see <see cref="CompleteResult.ToPlainText"/>), one line per result.</summary>
+    public ICommand CopyCompleteResultCommand { get; }
+
+    /// <summary>"Complete result copied." after Copy Complete Result; cleared whenever the Complete Result changes.</summary>
+    public string CompleteResultCopyMessage
+    {
+        get => _completeResultCopyMessage;
+        private set { if (Set(ref _completeResultCopyMessage, value)) Raise(nameof(HasCompleteResultCopyMessage)); }
+    }
+
+    public bool HasCompleteResultCopyMessage => CompleteResultCopyMessage.Length > 0;
+
+    private void CopyCompleteResult()
+    {
+        if (!CompleteResult.IsVisible) return;
+        try
+        {
+            _copyText(CompleteResult.ToPlainText("\r\n"));
+            CompleteResultCopyMessage = "Complete result copied.";
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.ExternalException or InvalidOperationException)
+        {
+            CompleteResultCopyMessage = $"The complete result could not be copied: {ex.Message}";
+        }
+    }
+
+    /// <summary>Rebuilds <see cref="CompleteResult"/> from the trail as it stands now.</summary>
+    private void UpdateCompleteResult()
+    {
+        _completeResult = CompleteResultBuilder.Build(CompleteResultInputFor(Steps, IsRolling));
+        CompleteResultCopyMessage = "";
+        Raise(nameof(CompleteResult));
+        Raise(nameof(CompleteResultHeading));
+        Raise(nameof(CompleteResultPendingText));
+        Raise(nameof(HasCompleteResultPending));
+    }
+
+    /// <summary>The trail as the shared builder reads it: plain data, nothing of this screen's own types.</summary>
+    internal static CompleteResultInput CompleteResultInputFor(IReadOnlyList<RollStepViewModel> steps, bool inProgress) =>
+        new(steps.Select((step, i) => new CompleteResultStepInput(
+                step.Table.Name,
+                step.IsFirst ? CompleteResultStepKind.Original : step.IsReturn ? CompleteResultStepKind.Return : CompleteResultStepKind.Linked,
+                step.Outcomes.Select(RollInputFor).ToList())
+            {
+                IsManualSelection = step.Table.IsManualSelection,
+                IsAutoFollowed = step.IsAutoFollowed,
+                OpenedFrom = i > 0 && step.OpenedFrom is { } line ? LineRefIn(steps[i - 1], line) : null,
+            }).ToList(),
+            inProgress);
+
+    private static CompleteResultRollInput RollInputFor(RollOutcomeViewModel outcome) =>
+        new(outcome.ActionNumber, outcome.RollText, outcome.Lines.Select(LineInputFor).ToList())
+        {
+            BatchPosition = outcome.BatchPosition, ResolvedAs = outcome.ResolvedAs, Entered = outcome.Entered,
+        };
+
+    private static CompleteResultLineInput LineInputFor(ResultLineViewModel line) =>
+        new(line.Heading, line.Text, line.IsProblem)
+        {
+            Styles = line.Styles,
+            InlineMatches = line.InlineMatches,
+            InlineValues = line.HasResolved
+                ? line.InlineActions.Where(a => a.LatestValue is not null).ToDictionary(a => a.Expression, a => a.LatestValue!.Value)
+                : CompleteResultLineInput.NoValues,
+            Link = line.Link switch
+            {
+                LinkState.Resolved => CompleteResultLink.Resolved,
+                LinkState.Unresolved => CompleteResultLink.Unresolved,
+                LinkState.Missing => CompleteResultLink.Missing,
+                _ => CompleteResultLink.None,
+            },
+            LinkName = line.LinkName,
+        };
+
+    private static CompleteResultLineRef? LineRefIn(RollStepViewModel step, ResultLineViewModel line)
+    {
+        for (var o = 0; o < step.Outcomes.Count; o++)
+        {
+            var index = IndexOf(step.Outcomes[o].Lines, line);
+            if (index >= 0) return new CompleteResultLineRef(o, index);
+        }
+        return null;
+    }
+
+    private static int IndexOf(IReadOnlyList<ResultLineViewModel> lines, ResultLineViewModel line)
+    {
+        for (var i = 0; i < lines.Count; i++)
+            if (ReferenceEquals(lines[i], line)) return i;
+        return -1;
     }
 
     // ---- Copy Table Text -----------------------------------------------------------------------------------------------
@@ -715,6 +853,7 @@ public sealed class RollViewModel : ObservableObject
             Raise(nameof(RollStatus));
             Raise(nameof(IsModifierEditable));
             Raise(nameof(IsRollCountEditable));
+            UpdateCompleteResult(); // a pending table reads "rolling…" while its dice are in the air
         }
     }
 
@@ -1136,6 +1275,7 @@ public sealed class RollViewModel : ObservableObject
         }
         action.SetResult(roll);
         PublishInline(action);
+        UpdateCompleteResult();
     }
 
     /// <summary>
@@ -1251,10 +1391,19 @@ public sealed class RollViewModel : ObservableObject
 
         // Links and inline dice offered by earlier Roll actions are superseded by this one; the other results of the same
         // multi-roll action stay active, each with its own.
-        if (position == 1) DeactivateLinks();
-        var outcome = new RollOutcomeViewModel(display, lines, breakdown, clampNote, count > 1 ? $"Roll {position}" : "", rerolled);
+        if (position == 1)
+        {
+            DeactivateLinks();
+            _actionNumber++; // a new action of the person's (or of auto-follow): every result of it shares this number
+        }
+        var outcome = new RollOutcomeViewModel(display, lines, breakdown, clampNote, count > 1 ? $"Roll {position}" : "", rerolled)
+        {
+            ActionNumber = _actionNumber, BatchPosition = count > 1 ? position : 0, RollText = formatted, ResolvedAs = clamped,
+            Entered = !fromProvider,
+        };
         step.Add(outcome, lookup, keepHighlights: position > 1);
         LatestRolls = position == 1 ? [outcome] : [.. LatestRolls, outcome];
+        UpdateCompleteResult(); // before Results, so the view lays out the new Complete Result before it scrolls to the roll
         Raise(nameof(LatestRolls));
         Raise(nameof(Results));
         Raise(nameof(RollDisplay));
@@ -1317,8 +1466,10 @@ public sealed class RollViewModel : ObservableObject
             Link = link, LinkName = linkName, LinkTarget = target, InlineMatches = inlineMatches, InlineActions = inlineActions,
             Styles = entry.Styles,
         };
+        // Only the current (active) result can be rolled: a superseded one keeps the value it was rolled to and is never rerolled.
         foreach (var action in inlineActions)
-            action.RollCommand = new RelayCommand(() => _ = RollInlineAsync(action), () => !IsRolling && (_diceReady?.Invoke() ?? true));
+            action.RollCommand = new RelayCommand(() => { if (line.IsActive) _ = RollInlineAsync(action); },
+                () => line.IsActive && !IsRolling && (_diceReady?.Invoke() ?? true));
         if (link == LinkState.Resolved) line.FollowCommand = new RelayCommand(() => Follow(line), () => line.IsActive && !IsRolling);
         return line;
     }
@@ -1330,7 +1481,7 @@ public sealed class RollViewModel : ObservableObject
     private void Follow(ResultLineViewModel line, string autoFollowedFrom = "")
     {
         if (!line.IsActive || line.LinkTarget is null) return;
-        EnterStep(new RollStepViewModel(line.LinkTarget, isFirst: false) { AutoFollowedFrom = autoFollowedFrom });
+        EnterStep(new RollStepViewModel(line.LinkTarget, isFirst: false) { AutoFollowedFrom = autoFollowedFrom, OpenedFrom = line });
     }
 
     // ---- Back to the original table ------------------------------------------------------------------------------------
@@ -1383,6 +1534,7 @@ public sealed class RollViewModel : ObservableObject
         Raise(nameof(IsAligned));
         Raise(nameof(IsNotAligned));
         Raise(nameof(AlignedRows));
+        UpdateCompleteResult(); // before Results, as in Apply
         Raise(nameof(Results));
         Raise(nameof(RollDisplay));
         Raise(nameof(RollBreakdown));
