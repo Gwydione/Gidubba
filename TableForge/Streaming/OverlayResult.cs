@@ -12,7 +12,17 @@ public sealed record OverlaySegment(string Text, bool Bold = false, bool Italic 
 public sealed record OverlayLine(string Heading, IReadOnlyList<OverlaySegment> Segments)
 {
     public string Text => string.Concat(Segments.Select(s => s.Text));
+
+    /// <summary>
+    /// Complete Result mode only: set on the first line of every part after the first, saying which table ("" when it is the
+    /// same table as the part shown before it) and roll that part came from. Shown as Show Table Name and Show Roll Value say
+    /// (<see cref="OverlayPublisher.Shown"/>); null on every other line.
+    /// </summary>
+    public OverlayPartLabel? Part { get; init; }
 }
+
+/// <summary>Where a part of a Complete Result on the overlay came from: "Loot" and "4".</summary>
+public sealed record OverlayPartLabel(string TableName, string RollValue);
 
 /// <summary>
 /// What the Streaming Overlay shows for one resolved result: a transient presentation copy, never an authoritative copy of
@@ -20,6 +30,9 @@ public sealed record OverlayLine(string Heading, IReadOnlyList<OverlaySegment> S
 /// </summary>
 public sealed record OverlayResult(string TableName, string RollValue, IReadOnlyList<OverlayLine> Lines)
 {
+    /// <summary>True when parts of a long Complete Result were left out to fit (an "…" line stands in their place).</summary>
+    public bool Omitted { get; init; }
+
     /// <summary>The Show Test Result content: proves the OBS source works without making a real roll.</summary>
     public static OverlayResult Test { get; } =
         new("Gidubba Overlay Test", "12", [new OverlayLine("", [new OverlaySegment("Your streaming overlay is working.")])]);
@@ -50,7 +63,7 @@ public static class OverlayLimits
         var truncated = false;
 
         // 1. At most MaxLines lines; the last one kept says that more followed.
-        var lines = result.Lines.Select(l => new LineDraft(l.Heading, [.. l.Segments])).ToList();
+        var lines = result.Lines.Select(l => new LineDraft(l.Heading, [.. l.Segments]) { Part = l.Part }).ToList();
         if (lines.Count > MaxLines)
         {
             lines = lines.Take(MaxLines).ToList();
@@ -60,7 +73,10 @@ public static class OverlayLimits
 
         // 2. Headings and the table name.
         foreach (var line in lines)
+        {
             if (Cut(line.Heading, MaxHeadingLength) is { } heading) { line.Heading = heading; truncated = true; }
+            if (line.Part is { } part && Cut(part.TableName, MaxTableNameLength) is { } partName) { line.Part = part with { TableName = partName }; truncated = true; }
+        }
         var tableName = result.TableName;
         if (Cut(tableName, MaxTableNameLength) is { } name) { tableName = name; truncated = true; }
 
@@ -85,7 +101,7 @@ public static class OverlayLimits
                 budget = 0;
                 break;
             }
-            kept.Add(new LineDraft(line.Heading, segments));
+            kept.Add(new LineDraft(line.Heading, segments) { Part = line.Part });
         }
 
         // 4. At most MaxSegments segments, keeping room for at least one segment on every later line.
@@ -103,7 +119,10 @@ public static class OverlayLimits
             used += kept[i].Segments.Count;
         }
 
-        return (new OverlayResult(tableName, result.RollValue, kept.Select(l => new OverlayLine(l.Heading, l.Segments)).ToList()), truncated);
+        return (new OverlayResult(tableName, result.RollValue, kept.Select(l => new OverlayLine(l.Heading, l.Segments) { Part = l.Part }).ToList())
+        {
+            Omitted = result.Omitted,
+        }, truncated || result.Omitted);
     }
 
     /// <summary>
@@ -122,5 +141,6 @@ public static class OverlayLimits
     {
         public string Heading { get; set; } = heading;
         public List<OverlaySegment> Segments { get; set; } = segments;
+        public OverlayPartLabel? Part { get; set; }
     }
 }

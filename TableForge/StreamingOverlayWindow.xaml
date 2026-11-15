@@ -7,7 +7,8 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Window.Resources>
     <StackPanel Margin="18">
-        <TextBlock Text="Show the latest Gidubba result in OBS as its own Browser Source." TextWrapping="Wrap" Margin="0,0,0,10" />
+        <TextBlock x:Name="OverlayIntroText" TextWrapping="Wrap" Margin="0,0,0,10"
+                   Text="Show your Gidubba results in OBS as their own Browser Source: the latest roll, or the complete result of linked rolls (see Overlay shows below)." />
 
         <CheckBox x:Name="EnableBox" Content="Enable streaming overlay" IsChecked="{Binding IsEnabled}" FontWeight="SemiBold" Margin="0,0,0,6" />
         <TextBlock x:Name="OverlayStatusText" Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,12" AutomationProperties.AutomationId="OverlayStatus">
@@ -62,6 +63,18 @@
 
         <CheckBox x:Name="ShowTableNameBox" Content="Show table name" IsChecked="{Binding ShowTableName}" Margin="0,8,0,4" />
         <CheckBox x:Name="ShowRollValueBox" Content="Show roll value" IsChecked="{Binding ShowRollValue}" Margin="0,0,0,10" />
+
+        <TextBlock x:Name="OverlayShowsLabel" Text="Overlay shows" FontWeight="SemiBold" Margin="0,0,0,4" />
+        <StackPanel x:Name="OverlayShowsOptions" Orientation="Horizontal" Margin="0,0,0,4">
+            <RadioButton x:Name="ShowsLatestRollOption" Content="Latest roll" IsChecked="{Binding ShowsLatestRoll}"
+                         AutomationProperties.HelpText="Each result replaces the one before."
+                         ToolTip="Each result replaces the one before." />
+            <RadioButton x:Name="ShowsCompleteResultOption" Content="Complete result" IsChecked="{Binding ShowsCompleteResult}" Margin="16,0,0,0"
+                         AutomationProperties.HelpText="Linked rolls and multi-rolls are shown together, as the Complete Result on the Roll screen."
+                         ToolTip="Linked rolls and multi-rolls are shown together, as the Complete Result on the Roll screen." />
+        </StackPanel>
+        <TextBlock x:Name="OverlayShowsHint" TextWrapping="Wrap" Foreground="#555" Margin="0,0,0,10"
+                   Text="Complete result shows a chain of linked rolls, or one Roll's several results, together; a single roll looks the same either way. Used from the next roll. For long chains, make the Browser Source taller or the text smaller (Custom CSS)." />
 
         <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
             <Button x:Name="ShowTestButton" Content="Show Test Result" Padding="10,3" Command="{Binding ShowTestCommand}"

@@ -133,6 +133,8 @@ public class PublicReleaseTests
         Assert.Contains("**New: Complete Result.**", notes);
         Assert.Contains("**Copy Complete Result**", notes);
         Assert.Contains("**Ordinary rolls look exactly as before.**", notes);
+        Assert.Contains("**New (optional): Complete Result on the Streaming Overlay.**", notes);
+        Assert.Contains("Custom CSS", notes);
         Assert.Contains("**The data format does not change** (still database schema version 12", notes);
         Assert.Contains("**Gidubba 1.5.1 can still open data that 1.6.0 has used.**", notes);
         Assert.Contains("Gidubba-1.6.0-Setup.exe", notes);

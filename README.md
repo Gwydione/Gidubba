@@ -28,7 +28,8 @@ Gidubba can also:
 - make words in a result **bold** or *italic* on the Review screen, shown that way when it is rolled;
 - give a table an optional plain-text **description** ("Roll when entering a new region"), shown under its dice while rolling;
 - make **several rolls at once**, keeping every result;
-- show the latest result in **OBS** with the **Streaming Overlay** (dddice's 3D dice can be a separate OBS source);
+- show the latest result in **OBS** with the **Streaming Overlay**, or a whole chain of linked rolls (dddice's 3D dice can
+  be a separate OBS source);
 - **Copy Table Text** as clean plain text for other tools and VTTs;
 - **Copy for Sojour**: just the rows, ready to paste into a Sojour Lookup Table;
 - **export to Foundry VTT** as JSON for the Roll Table Importer module;
@@ -110,8 +111,9 @@ only the current result with programs on this computer (address `127.0.0.1`); it
   reach, have not been checked in PUM.
 - **Auto-follow** follows one link per result and at most 8 tables in a chain, and never chooses on a Manual-selection
   table. Every table starts as an ordinary table: mark your selector tables yourself.
-- **Complete Result** lives on the Roll screen only: it is not saved, not in Recent rolls and not on the Streaming
-  Overlay. Inline dice in results that Auto-follow rolled past cannot be rolled any more, so they stay as written there.
+- **Complete Result** is not saved and not in Recent rolls, and the Streaming Overlay shows it only when you choose
+  **Overlay shows: Complete result**. Inline dice in results that Auto-follow rolled past cannot be rolled any more, so they
+  stay as written there.
 - **Unique Results:** which results have been used is kept on this computer only, never in exported files, and Reset
   works on a whole table. dddice tries 10 throws per result. Exports to other programs leave out Unique.
 - **Copy for Sojour** has been tested only by pasting with **Ctrl+V** into a Sojour Lookup Table; it copies one result
@@ -123,8 +125,9 @@ only the current result with programs on this computer (address `127.0.0.1`); it
 - The parser is deliberately conservative: anything it is unsure about stays together and is flagged on the Review screen
   instead of being guessed. Side-by-side columns that each restart at the same number are not split.
 - dddice accounts can use only themes with every standard die; custom dice are not supported.
-- The **Streaming Overlay** shows one current result. dddice's 3D dice can be shown in OBS only with a connected dddice
-  account, and two copies of Gidubba cannot use the same overlay port.
+- The **Streaming Overlay** shows one current result, or one current chain. It does not grow or shrink to fit: a long
+  chain needs a taller Browser Source or smaller text (Custom CSS). dddice's 3D dice can be shown in OBS only with a
+  connected dddice account, and two copies of Gidubba cannot use the same overlay port.
 
 ## Feedback and bug reports
 
@@ -275,8 +278,8 @@ so the whole outcome reads in one place. Every individual roll stays below it, e
 - The panel's height is limited, and it scrolls on its own. Click its heading to close or open it; it stays as you left it
   while you are on that Roll screen. With its heading or **Copy Complete Result** focused, **Page Up** and **Page Down**
   scroll it, and **Home** and **End** go to its start and end.
-- It lives on the Roll screen only: nothing is saved, Recent rolls still lists each roll, and the Streaming Overlay still
-  shows the latest result only.
+- Nothing is saved, and Recent rolls still lists each roll. The Streaming Overlay shows the latest result only, unless you
+  choose [Overlay shows: Complete result](#overlay-shows-latest-roll-or-complete-result).
 
 ## Auto-follow linked tables
 
@@ -745,6 +748,33 @@ What it shows:
 - Rolling inline dice in the current result ("2d6 Skeletons") updates that result in place ("7 Skeletons"). An inline roll in
   an older result (an earlier roll of several) does not change the overlay.
 - When Gidubba closes, the overlay goes blank within a few seconds. A new Gidubba session starts with it empty.
+
+### Overlay shows: Latest roll or Complete result
+
+**Overlay shows** in **Streaming Overlay…** chooses what a roll puts on the overlay (new in 1.6.0). **Latest roll** is the
+default and works exactly as above.
+
+**Complete result** shows a chain of linked rolls, or one **Roll**'s several results, together, the same way the
+[Complete Result](#complete-result) panel assembles them. Viewers see "WALL SHRINE" and the god it is dedicated to, not
+the god's name on its own.
+
+- The chain grows as each linked result arrives: with Auto-follow, one table after another; with dddice, once each table's
+  dice settle. Starting a roll, opening a link, **← Back to …** and closing or opening the panel change nothing on the
+  overlay. After **Back**, it keeps the previous chain until your next roll.
+- An ordinary single roll looks exactly as it does with **Latest roll**.
+- The first result is shown as usual. Every later one starts with its table and its roll in bold, like the first result's
+  ("GOT1 - God Table 1: **2** — Intuneric the Murk"), as **Show table name** and **Show roll value** say. The table is
+  named only where it changes, so the results of one **Roll 3 Times** read "**6** — …", "**5** — …", "**4** — …". The Roll
+  screen's captions and its "not rolled yet" line are never shown.
+- Rolling inline dice in the newest results updates the chain in place. **Clear Overlay** and **Show Test Result** work as
+  before, and nothing older comes back afterwards.
+- A chain longer than the overlay's limits (20 lines, 4000 characters of text) keeps the first result, for context, and as
+  many of the newest results as fit, with one "…" line where the others were. The newest result is always shown.
+- Changing **Overlay shows** applies from the next roll: what the overlay shows now stays, and OBS needs no refresh.
+
+The overlay page does not change size to fit: text below the Browser Source's height is not shown. For long chains, make
+the Browser Source taller in OBS, or make the text smaller with the source's **Custom CSS**, for example
+`.tf-result { font-size: 24px; }` (the default is 34px).
 
 **dddice's 3D dice in OBS.** dddice draws its own dice; Gidubba does not capture or relay them. To show them too, add
 dddice's own stream as a **second, separate** Browser Source:

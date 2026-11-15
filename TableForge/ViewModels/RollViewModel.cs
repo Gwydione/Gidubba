@@ -454,8 +454,9 @@ public sealed class RollViewModel : ObservableObject
 
     /// <summary>
     /// The newest chain of rolls assembled into one readable outcome (see <see cref="CompleteResultBuilder"/>): rebuilt from the
-    /// trail whenever a result is shown, a link is followed, an inline value is rolled or a roll starts or ends. Display and
-    /// copy only — it is never saved, published to the overlay or recorded in Recent Rolls.
+    /// trail whenever a result is shown, a link is followed, an inline value is rolled or a roll starts or ends. Never saved or
+    /// recorded in Recent Rolls; it reaches the overlay only in Complete Result mode, and only when a result is published
+    /// (see <see cref="PublishesCompleteResult"/>), never merely because it was rebuilt.
     /// </summary>
     public CompleteResult CompleteResult => _completeResult;
 
@@ -1274,8 +1275,8 @@ public sealed class RollViewModel : ObservableObject
             cancel.Dispose();
         }
         action.SetResult(roll);
+        UpdateCompleteResult(); // first: in Complete Result mode the overlay shows the chain with this value in it
         PublishInline(action);
-        UpdateCompleteResult();
     }
 
     /// <summary>
@@ -1286,8 +1287,28 @@ public sealed class RollViewModel : ObservableObject
     {
         if (_overlay is null) return;
         var outcome = Steps.SelectMany(s => s.Outcomes).FirstOrDefault(o => o.Lines.Any(l => l.InlineActions.Contains(action)));
-        if (outcome?.OverlayToken is { } token) _overlay.UpdateIfCurrent(token, OverlayResultFor(outcome));
+        if (outcome?.OverlayToken is not { } token) return;
+
+        // A chain on the overlay stays a chain (whatever "Overlay shows" says now): the same token check keeps it from
+        // coming back once anything newer, Clear or Test has replaced it.
+        if (_overlayChain is { } chain && CompleteResult.IsVisible && !CompleteResult.IsPrevious)
+            _overlay.UpdateIfCurrent(chain, OverlayCompleteResult.For(CompleteResult));
+        else
+            _overlay.UpdateIfCurrent(token, OverlayResultFor(outcome));
     }
+
+    /// <summary>
+    /// The token of the overlay result this screen last published as a Complete Result (null when it published the result
+    /// alone): only that one may still be updated as a chain, by an inline roll on one of its results.
+    /// </summary>
+    private OverlayToken? _overlayChain;
+
+    /// <summary>
+    /// Whether a result just shown goes to the overlay as the Complete Result: "Overlay shows: Complete result", and there is
+    /// one to show (a single ordinary roll has none, so it is published exactly as Latest Roll publishes it).
+    /// </summary>
+    private bool PublishesCompleteResult =>
+        _overlay is { DisplayMode: OverlayDisplayMode.CompleteResult } && CompleteResult.IsVisible && !CompleteResult.IsPrevious;
 
     /// <summary>The overlay's copy of one result: each result set's line, its inline rolls substituted in context, with its bold/italic.</summary>
     private static OverlayResult OverlayResultFor(RollOutcomeViewModel outcome) =>
@@ -1411,11 +1432,15 @@ public sealed class RollViewModel : ObservableObject
         Raise(nameof(RollClampNote));
 
         // The Streaming Overlay: this result becomes the current one (a No Match line included). It shows the roll exactly as
-        // calculated and displayed above — never the clamped lookup value, the clamp note or the modifier's arithmetic.
+        // calculated and displayed above — never the clamped lookup value, the clamp note or the modifier's arithmetic. In
+        // Complete Result mode it is the chain so far instead, ending with this result (see OverlayCompleteResult). Only a
+        // result publishes: a roll starting, Back, or the panel opening or closing never does.
         if (_overlay is not null)
         {
             outcome.OverlayHeader = (step.Table.Name, formatted);
-            outcome.OverlayToken = _overlay.Publish(OverlayResultFor(outcome));
+            var chain = PublishesCompleteResult;
+            outcome.OverlayToken = _overlay.Publish(chain ? OverlayCompleteResult.For(CompleteResult) : OverlayResultFor(outcome));
+            _overlayChain = chain ? outcome.OverlayToken : null;
         }
 
         // What the user saw, as text: each set's output, headed by the set's name when it has one.

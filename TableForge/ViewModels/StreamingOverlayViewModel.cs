@@ -69,6 +69,20 @@ public sealed class StreamingOverlayViewModel : ObservableObject
         set => _overlay.SetShowRollValue(value);
     }
 
+    /// <summary>"Overlay shows: Latest roll" (the default). Only a choice made (true) changes it; the other option clearing does not.</summary>
+    public bool ShowsLatestRoll
+    {
+        get => _overlay.Settings.DisplayMode == OverlayDisplayMode.LatestRoll;
+        set { if (value) _overlay.SetDisplayMode(OverlayDisplayMode.LatestRoll); }
+    }
+
+    /// <summary>"Overlay shows: Complete result".</summary>
+    public bool ShowsCompleteResult
+    {
+        get => _overlay.Settings.DisplayMode == OverlayDisplayMode.CompleteResult;
+        set { if (value) _overlay.SetDisplayMode(OverlayDisplayMode.CompleteResult); }
+    }
+
     public string LocalFilePath => _overlay.LocalFilePath;
     public string BrowserUrl => _overlay.BrowserUrl;
     public string StatusText => _overlay.StatusText;
@@ -121,6 +135,8 @@ public sealed class StreamingOverlayViewModel : ObservableObject
         Raise(nameof(IsEnabled));
         Raise(nameof(ShowTableName));
         Raise(nameof(ShowRollValue));
+        Raise(nameof(ShowsLatestRoll));
+        Raise(nameof(ShowsCompleteResult));
         Raise(nameof(LocalFilePath));
         Raise(nameof(BrowserUrl));
         Raise(nameof(StatusText));

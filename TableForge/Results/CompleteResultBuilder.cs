@@ -142,7 +142,11 @@ public sealed record CompleteResultLine(string TableName, string Heading, IReadO
 
 /// <summary>One roll's part of the Complete Result: a caption ("Occupants · 11 (resolved as 10)") and each result set's line.</summary>
 /// <param name="StepIndex">Which step of the trail it came from.</param>
-public sealed record CompleteResultPiece(int StepIndex, string TableName, string Caption, IReadOnlyList<CompleteResultLine> Lines);
+public sealed record CompleteResultPiece(int StepIndex, string TableName, string Caption, IReadOnlyList<CompleteResultLine> Lines)
+{
+    /// <summary>The roll exactly as the Roll screen shows it ("14", "00"): the Streaming Overlay's roll value for this part.</summary>
+    public string RollText { get; init; } = "";
+}
 
 /// <summary>The assembled outcome of the newest chain of rolls (see <see cref="CompleteResultBuilder"/>).</summary>
 /// <param name="IsPrevious">True after Back to the original table, until the next result: the chain shown is the one before it.</param>
@@ -219,7 +223,7 @@ public static class CompleteResultBuilder
             {
                 var roll = action[r];
                 var lines = roll.Lines.Select(l => new CompleteResultLine(step.TableName, l.Heading, Segments(l), l.IsProblem)).ToList();
-                pieces.Add(new CompleteResultPiece(i, step.TableName, Caption(step.TableName, roll, r == 0 ? origin : ""), lines));
+                pieces.Add(new CompleteResultPiece(i, step.TableName, Caption(step.TableName, roll, r == 0 ? origin : ""), lines) { RollText = roll.RollText });
             }
         }
 

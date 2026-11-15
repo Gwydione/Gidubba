@@ -41,9 +41,10 @@ public class OverlaySettingsStoreTests : IDisposable
         using (var doc = JsonDocument.Parse(File.ReadAllText(Store.FilePath)))
         {
             var r = doc.RootElement;
-            Assert.Equal(["format", "enabled", "port", "showTableName", "showRollValue"], r.EnumerateObject().Select(p => p.Name).ToArray());
+            Assert.Equal(["format", "enabled", "port", "showTableName", "showRollValue", "display"], r.EnumerateObject().Select(p => p.Name).ToArray());
             Assert.Equal((1, false, 41285, true, true), (r.GetProperty("format").GetInt32(), r.GetProperty("enabled").GetBoolean(),
                 r.GetProperty("port").GetInt32(), r.GetProperty("showTableName").GetBoolean(), r.GetProperty("showRollValue").GetBoolean()));
+            Assert.Equal("latestRoll", r.GetProperty("display").GetString());                      // 1.6.0: still format 1
         }
 
         var changed = new OverlaySettings(true, 43000, false, true);
@@ -75,6 +76,42 @@ public class OverlaySettingsStoreTests : IDisposable
     {
         File.WriteAllText(Store.FilePath, content);
         Assert.Equal(new OverlaySettings(enabled, port, tableName, rollValue), Store.Load());
+    }
+
+    [Fact]
+    public void Overlay_shows_defaults_to_Latest_roll_and_Complete_result_round_trips()
+    {
+        Assert.Equal(OverlayDisplayMode.LatestRoll, OverlaySettings.Default.DisplayMode);
+
+        var complete = OverlaySettings.Default with { DisplayMode = OverlayDisplayMode.CompleteResult, Port = 43000 };
+        Store.Save(complete);
+        Assert.Contains("\"display\": \"completeResult\"", File.ReadAllText(Store.FilePath));
+        Assert.Equal(complete, Store.Load());
+
+        Store.Save(complete with { DisplayMode = OverlayDisplayMode.LatestRoll });
+        Assert.Equal(OverlayDisplayMode.LatestRoll, Store.Load().DisplayMode);
+    }
+
+    [Theory]
+    [InlineData("""{"format":1,"enabled":true,"port":43000,"showTableName":false,"showRollValue":true}""")]   // as 1.5.1 saves it
+    [InlineData("""{"format":1,"enabled":true,"port":43000,"showTableName":false,"showRollValue":true,"display":"obsMagic"}""")]
+    [InlineData("""{"format":1,"enabled":true,"port":43000,"showTableName":false,"showRollValue":true,"display":1}""")]
+    [InlineData("""{"format":1,"enabled":true,"port":43000,"showTableName":false,"showRollValue":true,"display":"CompleteResult"}""")]
+    public void A_file_without_a_known_display_value_shows_the_latest_roll_and_keeps_its_other_settings(string content)
+    {
+        File.WriteAllText(Store.FilePath, content);
+        Assert.Equal(new OverlaySettings(true, 43000, false, true, OverlayDisplayMode.LatestRoll), Store.Load());
+    }
+
+    [Fact]
+    public void A_file_saved_with_Complete_result_still_loads_its_other_settings_the_way_1_5_1_reads_them()
+    {
+        // 1.5.1 reads the same five keys and ignores the rest: the 1.6.0 file is still format 1, with "display" added last.
+        Store.Save(new OverlaySettings(true, 43000, false, false, OverlayDisplayMode.CompleteResult));
+        using var doc = JsonDocument.Parse(File.ReadAllText(Store.FilePath));
+        var r = doc.RootElement;
+        Assert.Equal((1, true, 43000, false, false), (r.GetProperty("format").GetInt32(), r.GetProperty("enabled").GetBoolean(),
+            r.GetProperty("port").GetInt32(), r.GetProperty("showTableName").GetBoolean(), r.GetProperty("showRollValue").GetBoolean()));
     }
 
     [Theory]
@@ -377,6 +414,45 @@ public class StreamingOverlayDialogTests : IDisposable
     }
 
     [Fact]
+    public void Overlay_shows_starts_on_Latest_roll_and_choosing_Complete_result_saves_it_without_changing_the_overlay()
+    {
+        var vm = Vm();
+        Assert.True(vm.ShowsLatestRoll);
+        Assert.False(vm.ShowsCompleteResult);
+        vm.ShowTestCommand.Execute(null);
+        var before = _controller.Publisher.State;
+        var raised = new List<string?>();
+        vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        vm.ShowsCompleteResult = true;
+
+        Assert.Equal(OverlayDisplayMode.CompleteResult, _controller.Settings.DisplayMode);
+        Assert.Equal(OverlayDisplayMode.CompleteResult, _controller.Publisher.DisplayMode);
+        Assert.Equal(OverlayDisplayMode.CompleteResult, new OverlaySettingsStore(_folder.Path).Load().DisplayMode);   // saved
+        Assert.Same(before, _controller.Publisher.State);                                     // nothing republished: no refresh, no flicker
+        Assert.True(vm.ShowsCompleteResult);
+        Assert.False(vm.ShowsLatestRoll);
+        Assert.Contains(nameof(vm.ShowsLatestRoll), raised);
+        Assert.Contains(nameof(vm.ShowsCompleteResult), raised);
+
+        vm.ShowsLatestRoll = false;                                                           // the other option clearing changes nothing
+        Assert.Equal(OverlayDisplayMode.CompleteResult, _controller.Settings.DisplayMode);
+        vm.ShowsLatestRoll = true;
+        Assert.Equal(OverlayDisplayMode.LatestRoll, _controller.Publisher.DisplayMode);
+    }
+
+    [Fact]
+    public void A_saved_Complete_result_choice_is_used_from_start_up()
+    {
+        _controller.SetDisplayMode(OverlayDisplayMode.CompleteResult);
+        var publisher = new OverlayPublisher();
+        using var restarted = new StreamingOverlayController(publisher, _folder.Path);
+        restarted.Start();
+        Assert.Equal(OverlayDisplayMode.CompleteResult, publisher.DisplayMode);
+        Assert.True(new StreamingOverlayViewModel(restarted, null, _ => { }, _ => { }).ShowsCompleteResult);
+    }
+
+    [Fact]
     public void Test_and_clear_buttons_reach_the_overlay()
     {
         var vm = Vm();
@@ -457,12 +533,22 @@ public class StreamingOverlayDialogTests : IDisposable
             {
                 var names = ViewTests.FindAll<System.Windows.FrameworkElement>(window).Select(e => e.Name).Where(n => n.Length > 0).ToHashSet();
                 foreach (var name in new[] { "EnableBox", "OverlayStatusText", "LocalFileBox", "CopyLocalFileButton", "BrowserUrlBox", "CopyUrlButton",
-                             "PortBox", "ApplyPortButton", "ShowTableNameBox", "ShowRollValueBox", "ShowTestButton", "ClearOverlayButton", "OpenDddiceRoomButton" })
+                             "PortBox", "ApplyPortButton", "ShowTableNameBox", "ShowRollValueBox", "ShowsLatestRollOption", "ShowsCompleteResultOption", "OverlayShowsHint",
+                             "ShowTestButton", "ClearOverlayButton", "OpenDddiceRoomButton" })
                     Assert.Contains(name, names);
                 var local = ViewTests.FindAll<TextBox>(window).Single(t => t.Name == "LocalFileBox");
                 Assert.Equal(_folder.File("streaming-overlay.html"), local.Text);
                 Assert.True(local.IsReadOnly);
                 Assert.Equal("Streaming Overlay", window.Title);
+                var intro = ViewTests.FindAll<TextBlock>(window).Single(t => t.Name == "OverlayIntroText").Text;
+                Assert.Contains("the latest roll", intro);                                            // both modes, not "the latest result" alone
+                Assert.Contains("complete result", intro);
+                var options =ViewTests.FindAll<RadioButton>(window).ToDictionary(r => r.Name);
+                Assert.Equal(("Latest roll", true), ((string)options["ShowsLatestRollOption"].Content, options["ShowsLatestRollOption"].IsChecked == true));
+                Assert.Equal(("Complete result", false), ((string)options["ShowsCompleteResultOption"].Content, options["ShowsCompleteResultOption"].IsChecked == true));
+                options["ShowsCompleteResultOption"].IsChecked = true;                                 // clicking it, through the binding
+                Assert.Equal(OverlayDisplayMode.CompleteResult, vm.ShowsCompleteResult ? OverlayDisplayMode.CompleteResult : OverlayDisplayMode.LatestRoll);
+                Assert.False(options["ShowsLatestRollOption"].IsChecked);
             }
             finally { window.Close(); }
         });

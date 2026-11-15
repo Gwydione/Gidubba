@@ -51,7 +51,19 @@ public sealed class StreamingOverlayController : IDisposable
     {
         Settings = _store.Load();
         Publisher.SetPresentation(Settings.ShowTableName, Settings.ShowRollValue);
+        Publisher.SetDisplayMode(Settings.DisplayMode);
         if (Settings.Enabled) Activate(); else SetStatus(OverlayStatus.Disabled, DisabledText);
+    }
+
+    /// <summary>
+    /// "Overlay shows": saved, and used from the next result on. What the overlay shows now stays as it is (nothing is
+    /// published), and the page and its address do not change, so OBS needs no refresh.
+    /// </summary>
+    public void SetDisplayMode(OverlayDisplayMode mode)
+    {
+        if (mode == Settings.DisplayMode) return;
+        Persist(Settings with { DisplayMode = mode });
+        Publisher.SetDisplayMode(mode);
     }
 
     public void SetEnabled(bool enabled)

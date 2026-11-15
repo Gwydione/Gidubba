@@ -58,6 +58,14 @@ public sealed class OverlayPublisher
     /// <summary>Raised (on the caller's thread) after every change.</summary>
     public event EventHandler? Changed;
 
+    /// <summary>
+    /// "Overlay shows" (Gidubba 1.6.0): read by the Roll screen when it publishes a new result. Changing it publishes nothing and
+    /// leaves what the overlay shows alone; the next result is shown the new way.
+    /// </summary>
+    public OverlayDisplayMode DisplayMode { get; private set; } = OverlayDisplayMode.LatestRoll;
+
+    public void SetDisplayMode(OverlayDisplayMode mode) => DisplayMode = mode;
+
     /// <summary>A newly resolved result: it becomes the current one, whatever was shown before.</summary>
     public OverlayToken Publish(OverlayResult result)
     {
@@ -109,7 +117,7 @@ public sealed class OverlayPublisher
 
     private void SetLocked(OverlayResult? result, long generation)
     {
-        var (limited, truncated) = result is null ? (null, false) : OverlayLimits.Apply(result);
+        var (limited, truncated) = result is null ? (null, false) : OverlayLimits.Apply(result);   // Omitted parts count as truncated
         Store(_state with { Version = _state.Version + 1, Generation = generation, Result = limited, Truncated = truncated });
     }
 
@@ -125,6 +133,27 @@ public sealed class OverlayPublisher
         }
         _state = state;
         Volatile.Write(ref _json, json);
+    }
+
+    /// <summary>The separator the page shows after the first line's roll value (its <c>tf-roll-separator</c>).</summary>
+    public const string RollSeparator = " — ";
+
+    /// <summary>
+    /// A line as the page is sent it. Every line is unchanged except a Complete Result part's first line (see
+    /// <see cref="OverlayLine.Part"/>), labelled as Show Table Name and Show Roll Value say: its table goes in front of its
+    /// heading ("Loot · Treasure", "Loot", or the set's own heading), and its roll value starts its text in bold, followed by
+    /// " — ", as the page shows the first line's roll value: "Loot: <b>4</b> — A rusted key.", "<b>5</b> — Heavy rain.".
+    /// </summary>
+    public static OverlayLine Shown(OverlayLine line, bool showTableName, bool showRollValue)
+    {
+        if (line.Part is not { } part) return line;
+        var heading = showTableName && part.TableName.Length > 0
+            ? (line.Heading.Length > 0 ? $"{part.TableName} · {line.Heading}" : part.TableName)
+            : line.Heading;
+        IReadOnlyList<OverlaySegment> segments = showRollValue && part.RollValue.Length > 0
+            ? [new OverlaySegment(part.RollValue, Bold: true), new OverlaySegment(RollSeparator), .. line.Segments]
+            : line.Segments;
+        return new OverlayLine(heading, segments);
     }
 
     /// <summary>
@@ -148,7 +177,7 @@ public sealed class OverlayPublisher
                 w.WriteString("tableName", result.TableName);
                 w.WriteString("rollValue", result.RollValue);
                 w.WriteStartArray("lines");
-                foreach (var line in result.Lines)
+                foreach (var line in result.Lines.Select(l => Shown(l, state.ShowTableName, state.ShowRollValue)))
                 {
                     w.WriteStartObject();
                     w.WriteString("heading", line.Heading);

@@ -250,7 +250,8 @@ Use a table whose result links to a second table, which links to a third (Built-
       another table starts it open again. With the heading focused, **Page Up** / **Page Down** / **Home** / **End**
       scroll a long panel; **Tab** goes from the heading to **Copy Complete Result**, then on to the trail.
 - [ ] At 1000×640 with Recent rolls open and a long chain: the panel is small and scrolls; **Roll** stays in view.
-- [ ] Recent rolls lists each roll separately as before, and the Streaming Overlay shows only the latest roll's result.
+- [ ] Recent rolls lists each roll separately as before, and with **Overlay shows: Latest roll** (the default) the
+      Streaming Overlay shows only the latest roll's result.
 
 ## dddice
 
@@ -283,6 +284,21 @@ Needs OBS Studio. The dddice items also need a connected dddice account.
 - [ ] Close OBS and Gidubba, start OBS first, then Gidubba: the Local file source starts working by itself.
 - [ ] With another program on port 41285 (or a second Gidubba with the overlay on), the dialog says the port is in use.
       Type another port, **Apply**: it runs there; refresh the OBS source once and it shows results again.
+- [ ] **Overlay shows** is on **Latest roll** by default, and everything above behaves exactly as in 1.5.1.
+- [ ] **Overlay shows: Complete result** (no OBS refresh needed). Auto-follow a three-table chain: the overlay shows the
+      first result, then the first two, then all three, each later one starting "Table: **roll** — ". With dddice, each appears only
+      once its dice settle. **Stop** mid-chain leaves the chain so far.
+- [ ] Still Complete result: a table with no links shows exactly as with Latest roll. **Roll 3 Times** shows all three
+      results, each roll in bold followed by " — " like the first. Untick **Show table name** and **Show roll value**: the
+      table names and rolls go straight away, and the text stays.
+- [ ] Still Complete result: **Open** a link by hand (nothing changes), then Roll it (it is added). Collapse and expand the
+      Complete Result panel: nothing changes. **← Back to …**: the chain stays; the next roll replaces it.
+- [ ] Still Complete result: roll inline dice in the newest result: the chain updates in place. **Clear Overlay**, then roll
+      the inline dice again: the overlay stays empty. **Show Test Result** works as before.
+- [ ] A long chain in a short Browser Source: the bottom is cut off by OBS. Make the source taller, or add
+      `.tf-result { font-size: 24px; }` to its Custom CSS: it all shows. Over 20 lines, the first result, "…" and the
+      newest results are shown.
+- [ ] Switch back to **Latest roll**: the overlay keeps what it shows; the next roll shows that result alone.
 - [ ] dddice: **Open my dddice room** opens the room on dddice.com; its **Streaming tools** → **3D Dice** link, added as a
       second Browser Source, shows the dice of Gidubba's rolls, then the Gidubba result appears when they settle.
 
@@ -435,6 +451,8 @@ Use a copy of real data with the five Fourth Kingdom selectors marked Manual-sel
       backup copy in place of `tableforge.db` (changes made since the upgrade are lost).
 - [ ] From Gidubba 1.5.1 to 1.6.0: no data-format change, so no new backup copy appears, and every file in the data
       folder is unchanged. Settings → Apps still lists one **Gidubba** entry, now 1.6.0. 1.5.1 can still open the data.
+      With **Overlay shows: Complete result** saved, 1.5.1 still starts with the overlay's other settings and shows the
+      latest roll; an OBS Local file source keeps working in both versions.
 - [ ] From Gidubba 1.5.0 to 1.5.1: no data-format change, so no new backup copy appears. A connected dddice account
       stays connected with its theme, and keeps using the same room (no "dddice room changed" note). 1.5.0 can still
       open the data and still uses the dddice account afterwards.
